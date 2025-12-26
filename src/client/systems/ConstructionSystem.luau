@@ -26,7 +26,6 @@ local function ConstructionSystem(world)
     for _i, payload in matter.useEvent(Signals, 'CreateBelt') do
         local length = #payload.nodes * 2 * BeltSettings.BeltSubdiv
 
-        print(payload.nodes)
         local nodes: { Types.Beltnode } = {}
         for index, nodePos in ipairs(payload.nodes) do
             local dirToNext: Vector3
@@ -41,111 +40,19 @@ local function ConstructionSystem(world)
                 outDir = dirToNext,
             })
         end
-
-        local items = {
-            {
-                distFromNext = length,
-                item = 'iron_ore',
-            },
-            {
-                distFromNext = 10,
-                item = 'iron_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'iron_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'iron_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'iron_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'iron_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'copper_ore'
-            },
-            {
-                distFromNext = 10,
-                item = 'iron_ore'
-            }
-        }
-        for _i, item in ipairs(items) do
+        
+        -- generate random items
+        local items = {}
+        for i=1, 20 do
+            local item = {}
+            item.item = math.random() > 0.5 and 'iron_ore' or 'copper_ore'
+            
             local mesh = ItemMeshes[item.item]:Clone()
             mesh.Parent = workspace
-            item.distFromNext = _i == 1 and length or BeltSettings.ItemOcupancy * 2
+            item.distFromNext = i == 1 and length or BeltSettings.ItemOcupancy * 2
             item.mesh = mesh
-        end 
+            table.insert(items, item)
+        end
         
         world:spawn(
             Components.BeltPath({
