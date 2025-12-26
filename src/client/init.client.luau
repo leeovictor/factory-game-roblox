@@ -2,7 +2,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local ParallelWorker = require(ReplicatedStorage.Packages.ParallelWorker)
 local BeltToolController = require(script.BeltToolController)
 local Components = require(ReplicatedStorage.Shared.Components)
 local Matter = require(ReplicatedStorage.Packages.matter)
@@ -10,8 +9,6 @@ local Plasma = require(ReplicatedStorage.Packages.plasma)
 local Signals = require(ReplicatedStorage.Shared.Signals)
 local debugger = Matter.Debugger.new(Plasma)
 local widgets = debugger:getWidgets()
-
-local worker = ParallelWorker.new(script.TestJob, 8)
 
 local FixedUpdate = {}
 FixedUpdate.__index = FixedUpdate

@@ -1,6 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local Gizmos = require(ReplicatedStorage.Shared.Gizmos)
 local Signals = require(ReplicatedStorage.Shared.Signals)
 local TableUtils = require(ReplicatedStorage.Shared.TableUtils)
 
