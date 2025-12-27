@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local matter = require(ReplicatedStorage.Packages.matter)
 local BeltSettings = require(ReplicatedStorage.Shared.BeltSettings)
 local Components = require(ReplicatedStorage.Shared.Components)
+local Events = require(ReplicatedStorage.Shared.Events)
 local Signals = require(ReplicatedStorage.Shared.Signals)
 local TableUtils = require(ReplicatedStorage.Shared.TableUtils)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -70,6 +71,7 @@ local function ConstructionSystem(world)
     
     for _i, payload in matter.useEvent(Signals, 'DeconstructFacility') do
         print('ConstructionSystem - DeconstructFacility event received', payload)
+        Events.MinerModelClicked:Fire(payload.entityId)
 
         -- 1. Miner
         --      a. query the miner
@@ -78,23 +80,23 @@ local function ConstructionSystem(world)
         --          ore nodes: remove miner id from minersConnected
         --          belt path: remove miner input/output connections
         --      d. despawn miner entity
-        local miner = world:get(payload.entityId, Components.Miner)
-        local storage = world:get(payload.entityId, Components.Storage)
+        -- local miner = world:get(payload.entityId, Components.Miner)
+        -- local storage = world:get(payload.entityId, Components.Storage)
 
-        inventory.quantity = inventory.quantity + storage.currentAmount
-        world:insert(payload.entityId, storage:patch({
-            currentAmount = 0,
-        }))
+        -- inventory.quantity = inventory.quantity + storage.currentAmount
+        -- world:insert(payload.entityId, storage:patch({
+        --     currentAmount = 0,
+        -- }))
     
-        print('ConstructionSystem - DeconstructFacility - total ore in inventory:', inventory.quantity)
+        -- print('ConstructionSystem - DeconstructFacility - total ore in inventory:', inventory.quantity)
 
-        for _, oreEntityId in ipairs(miner.oreNodes) do
-            local oreNode = world:get(oreEntityId, Components.OreNode)
-            world:insert(oreEntityId, oreNode:patch({
-                minersConnected = TableUtils.Remove(oreNode.minersConnected, payload.entityId),
-            }))
-        end
-        world:despawn(payload.entityId)
+        -- for _, oreEntityId in ipairs(miner.oreNodes) do
+        --     local oreNode = world:get(oreEntityId, Components.OreNode)
+        --     world:insert(oreEntityId, oreNode:patch({
+        --         minersConnected = TableUtils.Remove(oreNode.minersConnected, payload.entityId),
+        --     }))
+        -- end
+        -- world:despawn(payload.entityId)
     end
     for _i, payload in matter.useEvent(Signals, 'BuildFacility') do
         print('ConstructionSystem - BuildFacility event received', payload)
@@ -113,9 +115,10 @@ local function ConstructionSystem(world)
                 isStatic = true,
             }),
             Components.Storage({
-                capacity = 10000000,
+                capacity = 100000,
                 currentAmount = 0,
-            })
+            }),
+            Components.HightlightOnHover()
         )
         for _, oreEntityId in ipairs(payload.oreEntities) do
             local oreNode = world:get(oreEntityId, Components.OreNode)

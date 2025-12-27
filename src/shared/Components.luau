@@ -22,5 +22,26 @@ return {
     
     BeltPath = Matter.component('BeltPath'),
     BeltItems = Matter.component('BeltItems'),
+
+    PathPreview = Matter.component('PathPreview'),
+    PatchPreviewInstances = Matter.component('PathPreviewInstances'),
+
+    BeltPlacer = Matter.component('BeltPlacer', {
+        curveDirection = 'X'
+    }),
+
+    HightlightOnHover = Matter.component('Highlightable'),
+    Hoverable = Matter.component('Hoverable', {
+        isHovering = false,
+    }),
+    InRangeToUpdate = Matter.component('InRangeToUpdate'),
+
+    DistanceFromPlayer = Matter.component('DistanceFromPlayer'),
+    HightlightOnHoverInitialized = Matter.component('HightlightOnHoverInitialized'),
+
+    UpdateMinerInfoUI = Matter.component('UpdateMinerInfoUI'),
+
+    Event = Matter.component('Event'),
+    CloseMinerInfoEvent = Matter.component('CloseMinerInfoEvent'),
 }
 

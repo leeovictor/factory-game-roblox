@@ -139,7 +139,7 @@ function generateOrePatch(center: Vector3, nodesCount: number, world)
         local entityId = world:spawn(
             Components.OreNode({
                 oreType = "Iron",
-                quantity = 100,
+                quantity = 10000,
             }),
             Components.Model({
                 instance = ppart

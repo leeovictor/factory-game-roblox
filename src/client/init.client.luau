@@ -7,6 +7,9 @@ local Components = require(ReplicatedStorage.Shared.Components)
 local Matter = require(ReplicatedStorage.Packages.matter)
 local Plasma = require(ReplicatedStorage.Packages.plasma)
 local Signals = require(ReplicatedStorage.Shared.Signals)
+local Types = require(ReplicatedStorage.Shared.Types)
+local orePatchGenerator = require(script.OrePatchGen)
+local MinerInfoScreen = require(script.ui.MinerInfoScreen)
 local debugger = Matter.Debugger.new(Plasma)
 local widgets = debugger:getWidgets()
 
@@ -37,24 +40,48 @@ function FixedUpdate:Connect(callback)
     end)
 end
 
+function extendWorld(world)
+    function world:GetSingleton(component: any): any
+        local id, comp = self:query(component):next()
+        return id, comp
+    end
+end
+
+local gameState = {
+    screens = {}
+}
 local world = Matter.World.new()
+extendWorld(world)
+gameState.screens.MinerInfoScreen = MinerInfoScreen.new(world)
+
+function world:GetSingleton(component)
+    local _id, comp = self:query(component):next()
+    return comp
+end
+
 world.FixedDeltaTime = 1 / 60
-local loop = Matter.Loop.new(world, widgets)
+local loop = Matter.Loop.new(world, gameState, widgets)
 loop:setWorlds({ world })
 
 local systems = {}
 for _, child in ipairs(script.systems:GetChildren()) do
     if child:IsA("ModuleScript") then
-        table.insert(systems, require(child))
+        local system = require(child)
+        if system.disabled then
+            continue
+        end
+        table.insert(systems, system)
     end
 end
 loop:scheduleSystems(systems)
 
 debugger:autoInitialize(loop)
+world:spawn(Components.BeltPlacer())
 loop:begin({
     default = RunService.Heartbeat,
     FixedUpdate = FixedUpdate.new(world.FixedDeltaTime),
 })
+
 
 UserInputService.InputBegan:Connect(function(input)
 	if input.KeyCode == Enum.KeyCode.F4 then
@@ -529,5 +556,4 @@ else
 end
 
 print('generating ore patches...')
-local orePatchGenerator = require(script.OrePatchGen)
 orePatchGenerator.generateAll(world)

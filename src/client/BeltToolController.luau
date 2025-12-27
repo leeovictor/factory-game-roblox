@@ -3,6 +3,20 @@ local UserInputService = game:GetService("UserInputService")
 local Signals = require(ReplicatedStorage.Shared.Signals)
 local TableUtils = require(ReplicatedStorage.Shared.TableUtils)
 
+-- quando a ferramenta é ativada eu começo o processo de construção da esteira
+-- 1. mostro um indicador do mouse no mundo conectado à grid
+-- 2. no primeiro clique eu defino a posição inicial da esteira
+--      a. pode ser que o primeiro clique seja um node de esteira já existente. nesse caso tenho os seguintes cenários
+--          i. se a direção da esteira existente for compatível com a nova esteira, eu continuo a esteira a partir daquele node e desconecto nodes da esteira existente que estão além desse node selecionado
+--         ii. se a direção da esteira existente não for compatível, eu crio uma nova esteira a partir daquele node, e desconecto nodes da esteira existente que estão além desse node selecionado
+--         iii. se o node selecionado for o node final da esteira existente, eu vou então mergear as duas esteiras em uma só
+-- 3. no segundo clique eu defino a posição final da esteira
+--      a. pode ser que o segundo clique seja um node de esteira já existente. nesse caso tenho os seguintes cenários
+--          i. se a direção da esteira existente for compatível com a nova esteira, eu continuo a esteira a partir daquele node e desconecto nodes da esteira existente que estão além desse node selecionado
+--         ii. se a direção da esteira existente não for compatível, eu crio uma nova esteira a partir daquele node, e desconecto nodes da esteira existente que estão além desse node selecionado
+--         iii. se o node selecionado for o node inicial da esteira existente, eu vou então mergear as duas esteiras em uma só
+-- 4. durante o processo de seleção do segundo ponto eu mostro uma prévia da esteira no mundo, atualizando conforme o mouse se move
+
 local PathRenderer = {}
 PathRenderer.__index = PathRenderer
 
@@ -145,10 +159,6 @@ function BeltToolController:deactivate()
     
     local points = getPathPoints(self.startPosition, self.endPosition, self.curveDirection)
     Signals.CreateBelt:Fire({ nodes = points })
-    
-    -- TODO: Place the belt between startPosition and endPosition
-    -- create belt path entity with all the necessary data
-    -- optional: continue placing belts from endPosition until user unequips the tool and auto connect to next belt segment
 
     self.startPosition = nil
     self.endPosition = nil
@@ -186,6 +196,7 @@ function BeltToolController:update()
             -- 3. what to do when cross other belts?
                 -- a. pass over? (how to handle this? elevation changes?)
             self.pathRenderer:renderPoint(p)
+
         end
     end
     self.pathRenderer:commit()
