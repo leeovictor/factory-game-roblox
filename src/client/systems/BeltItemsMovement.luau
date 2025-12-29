@@ -1,7 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local BeltSettings = require(ReplicatedStorage.Shared.BeltSettings)
 local Components = require(ReplicatedStorage.Shared.Components)
-local Gizmos = require(ReplicatedStorage.Shared.Gizmos)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local function findNodeBySegment(nodesNumber: number, segmentsPerNodes: number, distance: number)
@@ -14,23 +13,7 @@ local function findNodeBySegment(nodesNumber: number, segmentsPerNodes: number, 
 	return segmentIndex
 end
 
-local function BeltItemsMovementSystem(world, _state, ui)
-	if ui.checkbox("Enable Debug") then
-		for _id, belt in world:query(Components.BeltPath) do
-			for _i, node: Types.Beltnode in ipairs(belt.nodes) do
-				Gizmos.setColor(Color3.new(0, 1, 0))
-				Gizmos.drawPoint(node.pos)
-
-				if not node.outDir then
-					Gizmos.setColor(Color3.new(1, 0, 0))
-					Gizmos.drawRay(node.pos, Vector3.yAxis)
-					continue
-				end
-				Gizmos.drawRay(node.pos, node.outDir)
-			end
-		end
-	end
-
+local function BeltItemsMovementSystem(world, _state)
 	local meshes = {}
 	local cframes = {}
 	for _id, belt, beltItems in world:query(Components.BeltPath, Components.BeltItems) do
@@ -77,5 +60,4 @@ end
 return {
 	system = BeltItemsMovementSystem,
 	priority = math.huge,
-	event = "FixedUpdate",
 }
