@@ -1,5 +1,4 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SmoothVoxelsUpgraderService = game:GetService("SmoothVoxelsUpgraderService")
 local Matter = require(ReplicatedStorage.Packages.matter)
 
 return {

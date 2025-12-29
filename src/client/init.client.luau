@@ -1,4 +1,3 @@
-local ExperienceAuthService = game:GetService("ExperienceAuthService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -74,59 +73,6 @@ UserInputService.InputBegan:Connect(function(input)
 		debugger:toggle()
 	end
 end)
-
-function renderGridLines(gridSize: number, gridExtends: number, center: Vector3)
-	local folder = Instance.new("Folder")
-	folder.Name = "GridLines"
-	folder.Parent = workspace
-	center = center or Vector3.zero
-
-	for x = -gridExtends, gridExtends, gridSize do
-		local line = Instance.new("Part")
-		if x % 10 == 0 then
-			line.Size = Vector3.new(0.2, 0.2, gridExtends * 2)
-			line.Transparency = 0.7
-		else
-			line.Transparency = 0.9
-			line.Size = Vector3.new(0.1, 0.1, gridExtends * 2)
-		end
-
-		line.Anchored = true
-		line.CanCollide = false
-		line.Color = Color3.fromRGB(22, 160, 63)
-		line.Material = Enum.Material.Neon
-		line.Position = Vector3.new(center.X + x, center.Y, center.Z)
-		line.Parent = folder
-	end
-
-	for z = -gridExtends, gridExtends, gridSize do
-		local line = Instance.new("Part")
-		if z % 10 == 0 then
-			line.Size = Vector3.new(gridExtends * 2, 0.2, 0.2)
-			line.Transparency = 0.7
-		else
-			line.Transparency = 0.9
-			line.Size = Vector3.new(gridExtends * 2, 0.1, 0.1)
-		end
-		line.Anchored = true
-		line.CanCollide = false
-		line.Material = Enum.Material.Neon
-		line.Color = Color3.fromRGB(22, 160, 63)
-		line.Position = Vector3.new(center.X, center.Y, center.Z + z)
-		line.Parent = folder
-	end
-end
-
-function hideGrid()
-	local gridFolder = workspace:FindFirstChild("GridLines")
-	if gridFolder then
-		gridFolder:Destroy()
-	end
-	local pointsFolder = workspace:FindFirstChild("GridPoints")
-	if pointsFolder then
-		pointsFolder:Destroy()
-	end
-end
 
 local player = Players.LocalPlayer
 
