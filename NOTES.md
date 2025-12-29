@@ -4,6 +4,11 @@ Belts
     * Desconstruir nó de esteira (unmerge): habilidade de remover um nó da esteira, ou a esteira completa
 
 
+GridLines render
+    * Renderizar linhas de grade quando o player está construindo algo
+    * Renderizar essas linhas nos 50/100 de distancia do player 
+    * A medida que o player se move a grid se move junto, removendo linhas fora do alcance e criando novas para sempre manter as grid lines desenhadas proximas do player
+
 
 Sorter: construção que coleta item de esteiras ou outras construções e transfere para outras esteiras ou construções
     * Criar modelo básico para o sorter

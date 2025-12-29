@@ -1,47 +1,52 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SmoothVoxelsUpgraderService = game:GetService("SmoothVoxelsUpgraderService")
 local Matter = require(ReplicatedStorage.Packages.matter)
 
 return {
-    Miner = Matter.component('Miner'),
-    OreNode = Matter.component('OreNode', {
-        minersConnected = {},
-    }),
-    Storage = Matter.component('Storage'),
-    ProductionFacility = Matter.component('ProductionFacility'),
-    
-    Model = Matter.component('Model'),
-    Transform = Matter.component('Transform'),
-    StaticTransform = Matter.component('StaticTransform'),
-    StaticTransformUpdated = Matter.component('StaticTransformUpdated'),
+	Miner = Matter.component("Miner"),
+	OreNode = Matter.component("OreNode", {
+		minersConnected = {},
+	}),
+	Storage = Matter.component("Storage"),
+	ProductionFacility = Matter.component("ProductionFacility"),
 
-    -- Miner States
-    MinerState_NodesDepleted = Matter.component('MinerState_NodesDepleted'),
+	Model = Matter.component("Model"),
+	Transform = Matter.component("Transform"),
+	StaticTransform = Matter.component("StaticTransform"),
+	StaticTransformUpdated = Matter.component("StaticTransformUpdated"),
 
-    -- Ore Node States
-    OreNodeDepleted = Matter.component('OreNodeDepleted'),
-    
-    BeltPath = Matter.component('BeltPath'),
-    BeltItems = Matter.component('BeltItems'),
+	-- Miner States
+	MinerState_NodesDepleted = Matter.component("MinerState_NodesDepleted"),
 
-    PathPreview = Matter.component('PathPreview'),
-    PatchPreviewInstances = Matter.component('PathPreviewInstances'),
+	-- Ore Node States
+	OreNodeDepleted = Matter.component("OreNodeDepleted"),
 
-    BeltPlacer = Matter.component('BeltPlacer', {
-        curveDirection = 'X'
-    }),
+	BeltPath = Matter.component("BeltPath"),
+	BeltItems = Matter.component("BeltItems"),
 
-    HightlightOnHover = Matter.component('Highlightable'),
-    Hoverable = Matter.component('Hoverable', {
-        isHovering = false,
-    }),
-    InRangeToUpdate = Matter.component('InRangeToUpdate'),
+	PathPreview = Matter.component("PathPreview"),
+	PathPreviewInstances = Matter.component("PathPreviewInstances"),
 
-    DistanceFromPlayer = Matter.component('DistanceFromPlayer'),
-    HightlightOnHoverInitialized = Matter.component('HightlightOnHoverInitialized'),
+	BeltPlacer = Matter.component("BeltPlacer", {
+		curveDirection = "X",
+	}),
+	FacilityPlacer = Matter.component("FacilityPlacer"),
 
-    UpdateMinerInfoUI = Matter.component('UpdateMinerInfoUI'),
+	DistanceFromPlayer = Matter.component("DistanceFromPlayer"),
+	HightlightOnHoverInitialized = Matter.component("HightlightOnHoverInitialized"),
 
-    Event = Matter.component('Event'),
-    CloseMinerInfoEvent = Matter.component('CloseMinerInfoEvent'),
+	UpdateMinerInfoUI = Matter.component("UpdateMinerInfoUI"),
+
+	Event = Matter.component("Event"),
+	CloseMinerInfoEvent = Matter.component("CloseMinerInfoEvent"),
+
+	PlacementPointer = Matter.component("PlacementPointer", {
+		snapToGrid = true,
+		color = Color3.fromRGB(255, 255, 255),
+		smooth = false,
+	}),
+
+	Settings = Matter.component("Settings"),
+
+	GridLines = Matter.component("GridLines"),
 }
-

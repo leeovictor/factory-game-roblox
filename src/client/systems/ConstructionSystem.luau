@@ -117,8 +117,7 @@ local function ConstructionSystem(world)
             Components.Storage({
                 capacity = 100000,
                 currentAmount = 0,
-            }),
-            Components.HightlightOnHover()
+            })
         )
         for _, oreEntityId in ipairs(payload.oreEntities) do
             local oreNode = world:get(oreEntityId, Components.OreNode)

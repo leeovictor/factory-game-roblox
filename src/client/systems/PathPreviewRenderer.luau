@@ -17,7 +17,7 @@ local PathPointsPool = ObjectPool.new(createBasePoint, 100)
 
 local function PathPreviewRenderer(world)
     -- release removed path preview instances
-    for _, record in world:queryChanged(Components.PatchPreviewInstances) do
+    for _, record in world:queryChanged(Components.PathPreviewInstances) do
         if record.new == nil then
             for _, instance in ipairs(record.old.instances) do
                 instance.Parent = nil
@@ -26,21 +26,21 @@ local function PathPreviewRenderer(world)
         end
     end
 
-    for id, pathPreview in world:query(Components.PathPreview):without(Components.PatchPreviewInstances) do
+    for id, pathPreview in world:query(Components.PathPreview):without(Components.PathPreviewInstances) do
         local instances = {}
         for _ in ipairs(pathPreview.points) do
             local instance = PathPointsPool:Acquire()
             instance.Parent = workspace
             table.insert(instances, instance)
         end
-        world:insert(id, Components.PatchPreviewInstances({
+        world:insert(id, Components.PathPreviewInstances({
             instances = instances,
         }))
         world:commitCommands()
     end
 
     -- update path preview instances
-    for _id, pathPreview, pathInstances in world:query(Components.PathPreview, Components.PatchPreviewInstances) do
+    for _id, pathPreview, pathInstances in world:query(Components.PathPreview, Components.PathPreviewInstances) do
         if #pathInstances.instances ~= #pathPreview.points then
             if #pathInstances.instances < #pathPreview.points then
                 for _i = #pathInstances.instances + 1, #pathPreview.points do
@@ -75,6 +75,5 @@ end
 
 return {
     system = PathPreviewRenderer,
-    event = 'FixedUpdate',
     priority = math.huge,
 }
