@@ -1,9 +1,11 @@
 Belts
     * Conectar esteiras nas saídas dos miners
     * Conexão de esteiras: conseguir construir uma esteira que conecta com outra, se tornando um BeltPath único (merge)
-      * Continuar construindo a partir do ultimo node do ultimo beltpath spawmado
+      * Continuar construindo a partir do ultimo node do ultimo beltpath spawmado - OK
       * O início no final de outra esteira (OK)
-      * O início no meio de outra esteira
+      * O início no meio de outra esteira - PROGRESS
+        * dividir esteira original em duas 
+        * e adicionar novos nós na primeiro seção da esteira antiga a partir do start node
       * O final no início de outra esteira
       * O final no meio de outra esteira (conexão T) 
     * Desconstruir nó de esteira (unmerge): habilidade de remover um nó da esteira, ou a esteira completa
