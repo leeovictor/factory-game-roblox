@@ -10,6 +10,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local mouse = Players.LocalPlayer:GetMouse()
 
+local ctrlHold = false
 local function UISystem(world: Types.World, gameState)
 	MatterHooks.useContextAction("uisystem:open_facility_details_ui", function(_action, inputState: Enum.UserInputState)
 		if inputState == Enum.UserInputState.End then
@@ -22,6 +23,22 @@ local function UISystem(world: Types.World, gameState)
 			end
 		end
 	end, { inputTypes = { Enum.UserInputType.MouseButton1 } })
+
+	MatterHooks.useContextAction(
+		"uisystem:copy_command",
+		function(_action, inputState: Enum.UserInputState, inputObj: InputObject)
+			if inputObj.KeyCode == Enum.KeyCode.LeftControl and inputState == Enum.UserInputState.Begin then
+				ctrlHold = true
+			elseif inputObj.KeyCode == Enum.KeyCode.LeftControl and inputState == Enum.UserInputState.End then
+				ctrlHold = false
+			end
+
+			if inputObj.KeyCode == Enum.KeyCode.C and inputState == Enum.UserInputState.Begin and ctrlHold then
+				print("Ctrl + C detected")
+			end
+		end,
+		{ inputTypes = { Enum.KeyCode.LeftControl, Enum.KeyCode.C } }
+	)
 
 	for _, entityId in matter.useEvent(Events, "CloseMinerInfoEvent") do
 		print("Closing Miner Info UI for entity:", entityId)

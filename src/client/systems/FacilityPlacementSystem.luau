@@ -15,8 +15,9 @@ local function validateFacilityPlacement(model: Model, facilityName: string)
 	if facilityName == "Assembler" or facilityName == "Smelter" then
 		local overlapParams = OverlapParams.new()
 		overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+		local gridLines = workspace:FindFirstChild("GridLines")
 		overlapParams.FilterDescendantsInstances =
-			{ model, workspace.GridLines, workspace.Baseplate, Players.LocalPlayer.Character }
+			{ model, gridLines, workspace.Baseplate, Players.LocalPlayer.Character }
 		local primaryPart = model.PrimaryPart
 		local canPlace = #workspace:GetPartBoundsInBox(primaryPart.CFrame, primaryPart.Size, overlapParams) == 0
 		return {
@@ -28,8 +29,9 @@ local function validateFacilityPlacement(model: Model, facilityName: string)
 		local primaryPart = model.PrimaryPart
 		local overlapParams = OverlapParams.new()
 		overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+		local gridLines = workspace:FindFirstChild("GridLines")
 		overlapParams.FilterDescendantsInstances =
-			{ model, workspace.GridLines, workspace.Baseplate, Players.LocalPlayer.Character }
+			{ model, gridLines, workspace.Baseplate, Players.LocalPlayer.Character }
 		local primaryPartColliding = #workspace:GetPartBoundsInBox(
 				primaryPart.CFrame,
 				primaryPart.Size,
@@ -69,7 +71,6 @@ local function FacilityPlacementSystem(world: Types.World, _gameState)
 	local facilityPlacer: Types.FacilityPlacer = world:GetSingleton(Components.FacilityPlacer)
 	local placementPointer: Types.PlacementPointer = world:GetSingleton(Components.PlacementPointer)
 	local settings: Types.Settings = world:GetSingleton(Components.Settings)
-	local gridLines: Types.GridLines = world:GetSingleton(Components.GridLines)
 
 	local function spawnMiner()
 		local oreEntities = {}
@@ -98,7 +99,7 @@ local function FacilityPlacementSystem(world: Types.World, _gameState)
 				isStatic = true,
 			}),
 			Components.Storage({
-				capacity = 100000,
+				capacity = 100,
 				currentAmount = 0,
 			})
 		)
@@ -115,7 +116,6 @@ local function FacilityPlacementSystem(world: Types.World, _gameState)
 
 	for _, event in matter.useEvent(Events, "ToolUnequiped") do
 		if event.type == "FacilityPlacer" then
-			gridLines.enabled = false
 			facilityPlacer.enabled = false
 			if facilityPlacer.hologramModel then
 				facilityPlacer.hologramModel:Destroy()
@@ -125,7 +125,6 @@ local function FacilityPlacementSystem(world: Types.World, _gameState)
 	end
 	for _, event in matter.useEvent(Events, "ToolEquiped") do
 		if event.type == "FacilityPlacer" then
-			gridLines.enabled = true
 			facilityPlacer.enabled = true
 			facilityPlacer.hologramModel = FacilitiesModels[event.facilityModel]:Clone()
 			facilityPlacer.canDisableSnapping = event.canDisableSnapping

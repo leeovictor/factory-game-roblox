@@ -27,7 +27,7 @@ local function BeltItemsMovementSystem(world, _state)
 
 			local beltLength = #belt.nodes * BeltSettings.BeltSubdiv * 2
 			local nodeIndex = findNodeBySegment(#belt.nodes, BeltSettings.BeltSubdiv * 2, distance)
-			local node: Types.Beltnode = belt.nodes[nodeIndex]
+			local node: Types.BeltNode = belt.nodes[nodeIndex]
 			local prevNode = belt.nodes[nodeIndex - 1]
 
 			local startSeg = (nodeIndex - 1) * (BeltSettings.BeltSubdiv * 2)
@@ -59,5 +59,6 @@ end
 
 return {
 	system = BeltItemsMovementSystem,
+	event = "FixedUpdate",
 	priority = math.huge,
 }

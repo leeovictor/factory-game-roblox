@@ -1,4 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local BeltPlacerSystem = require(script.Parent.BeltPlacerSystem)
+local FacilityPlacementSystem = require(script.Parent.FacilityPlacementSystem)
 local matter = require(ReplicatedStorage.Packages.matter)
 local Components = require(ReplicatedStorage.Shared.Components)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -6,6 +8,10 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local function GridLinesRenderer(world: Types.World)
 	local settings: Types.Settings = world:GetSingleton(Components.Settings)
 	local gridLines: Types.GridLines = world:GetSingleton(Components.GridLines)
+	local beltPlacer: Types.BeltPlacer = world:GetSingleton(Components.BeltPlacer)
+	local facilityPlacer: Types.FacilityPlacer = world:GetSingleton(Components.FacilityPlacer)
+
+	gridLines.enabled = beltPlacer.enabled or facilityPlacer.enabled
 
 	if gridLines.enabled == false then
 		if gridLines.folder then
@@ -36,7 +42,7 @@ local function GridLinesRenderer(world: Types.World)
 		gridLines.cachedParts = {}
 	end
 
-	local needsUpdate = gridLines.gridSize ~= settings.gridSize
+	local needsUpdate = gridLines.enabled and gridLines.gridSize ~= settings.gridSize
 		or gridLines.center ~= player.Character
 		or player.Character.HumanoidRootPart.Position
 		or Vector3.zero
@@ -78,6 +84,7 @@ local function GridLinesRenderer(world: Types.World)
 			line1.Size = Vector3.new(thicknessX, thicknessX, gridLines.gridExtents)
 			line1.CFrame = CFrame.new(Vector3.new(worldX, 0, math.floor(gridLines.center.Z / step) * step))
 			line1.Color = Color3.fromRGB(28, 255, 85)
+			line1.Material = Enum.Material.Plaster
 			line1.Transparency = 0.7
 			line1.Parent = gridLines.folder
 			partIndex += 1
@@ -99,6 +106,7 @@ local function GridLinesRenderer(world: Types.World)
 			line2.Size = Vector3.new(gridLines.gridExtents, thicknessZ, thicknessZ)
 			line2.CFrame = CFrame.new(Vector3.new(math.floor(gridLines.center.X / step) * step, 0, worldZ))
 			line2.Color = Color3.fromRGB(28, 255, 85)
+			line2.Material = Enum.Material.Plaster
 			line2.Transparency = 0.7
 			line2.Parent = gridLines.folder
 			partIndex += 1
@@ -111,11 +119,14 @@ local function GridLinesRenderer(world: Types.World)
 				part.Parent = nil
 			end
 		end
-		matter.log(#cachedParts)
 	end
 end
 
 return {
 	system = GridLinesRenderer,
 	event = "FixedUpdate",
+	after = {
+		BeltPlacerSystem,
+		FacilityPlacementSystem,
+	},
 }

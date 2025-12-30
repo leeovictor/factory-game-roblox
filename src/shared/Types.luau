@@ -2,9 +2,35 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local matter = require(ReplicatedStorage.Packages.matter)
 
 export type EntityId = number
-export type Beltnode = {
+
+export type BeltNode = {
 	pos: Vector3,
 	outDir: Vector3,
+	index: number,
+	inDir: Vector3,
+}
+
+export type BeltItemComponent = {
+	items: { BeltItem },
+}
+
+export type BeltItem = {
+	item: string,
+	distFromNext: number,
+	mesh: MeshPart,
+}
+
+export type BeltPath = {
+	nodes: { BeltNode },
+	startPos: Vector3,
+	endPos: Vector3,
+	distToInsertAtStart: number,
+	nodesSpawned: boolean,
+}
+
+export type BeltNodeComponent = {
+	beltPath: EntityId,
+	nodeIndex: number,
 }
 
 export type PathPreview = {
@@ -22,6 +48,7 @@ export type BeltPlacer = {
 	curveDirection: string,
 	pathPreview: EntityId?,
 	enabled: boolean,
+	nodeAtStartPosition: BeltNodeComponent?,
 }
 export type World = typeof(matter.World) & {
 	GetSingleton: (self: World, component: any) -> any,

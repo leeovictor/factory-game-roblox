@@ -12,6 +12,10 @@ pointerPart.Anchored = true
 pointerPart.CanCollide = false
 pointerPart.CanQuery = false
 pointerPart.Name = "PlacementPointer"
+local highlight = Instance.new("Highlight")
+highlight.Parent = pointerPart
+highlight.FillColor = Color3.fromRGB(255, 255, 255)
+highlight.FillTransparency = 0
 
 local mouse = Players.LocalPlayer:GetMouse()
 

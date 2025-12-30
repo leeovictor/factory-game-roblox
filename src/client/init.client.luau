@@ -53,8 +53,8 @@ debugger:autoInitialize(loop)
 world:spawn(Components.Settings({
 	gridSize = 2,
 }))
-world:spawn(Components.BeltPlacer())
 world:spawn(Components.PlacementPointer())
+world:spawn(Components.BeltPlacer())
 world:spawn(Components.FacilityPlacer())
 world:spawn(Components.GridLines({
 	gridSize = 2,
@@ -66,6 +66,7 @@ world:spawn(Components.GridLines({
 loop:begin({
 	default = RunService.Heartbeat,
 	FixedUpdate = FixedUpdate.new(world.FixedDeltaTime),
+	PreRender = RunService.PreRender,
 })
 
 UserInputService.InputBegan:Connect(function(input)

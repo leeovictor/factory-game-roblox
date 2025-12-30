@@ -48,4 +48,6 @@ return {
 	Settings = Matter.component("Settings"),
 
 	GridLines = Matter.component("GridLines"),
+
+	BeltNode = Matter.component("BeltNode"),
 }
