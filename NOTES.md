@@ -1,14 +1,13 @@
 Belts
+    * Conectar esteiras nas saídas dos miners
     * Conexão de esteiras: conseguir construir uma esteira que conecta com outra, se tornando um BeltPath único (merge)
-    * Conexão em T: habilidade de conectar logicamente duas BeltPath diferentes, onde o final de uma elas entra em um node da outra, transferindo items para ela 
+      * Continuar construindo a partir do ultimo node do ultimo beltpath spawmado
+      * O início no final de outra esteira (OK)
+      * O início no meio de outra esteira
+      * O final no início de outra esteira
+      * O final no meio de outra esteira (conexão T) 
     * Desconstruir nó de esteira (unmerge): habilidade de remover um nó da esteira, ou a esteira completa
-
-
-GridLines render
-    * Renderizar linhas de grade quando o player está construindo algo
-    * Renderizar essas linhas nos 50/100 de distancia do player 
-    * A medida que o player se move a grid se move junto, removendo linhas fora do alcance e criando novas para sempre manter as grid lines desenhadas proximas do player
-
+    * Atualizar modelos da esteira para usar versões Straight, CurveLeft e CurveRight de acordo com as propriedades de cada node
 
 Sorter: construção que coleta item de esteiras ou outras construções e transfere para outras esteiras ou construções
     * Criar modelo básico para o sorter
@@ -22,5 +21,3 @@ Sorter: construção que coleta item de esteiras ou outras construções e trans
         * returning: quando a base do sorter está retornando a posição inicial da entrada
         * product_overflow: quando o processo de transporte foi finalizado, mas não é possível inserir o item na saída por conta de não haver espaço
       * Provavelmente vai interagir com esteiras e facilities, observando receitas selcionadas para compreender que tipo de items pode transportar naquele momento
-
-
