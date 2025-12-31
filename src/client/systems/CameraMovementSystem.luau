@@ -1,9 +1,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local Components = require(ReplicatedStorage.Shared.Components)
 local MatterHooks = require(ReplicatedStorage.Shared.MatterHooks)
-local Types = require(ReplicatedStorage.Shared.Types)
 
 local cameraYaw = 0
 local cameraPitch = 0
@@ -12,8 +10,7 @@ local minZoom = 5
 local maxZoom = 100
 local currentZoom = minZoom
 
-local function CameraMovementSystem(world: Types.World, _gameState, ui)
-	local settings: Types.Settings = world:GetSingleton(Components.Settings)
+local function CameraMovementSystem()
 	local character = Players.LocalPlayer.Character
 
 	if workspace.CurrentCamera and workspace.CurrentCamera.CameraType ~= Enum.CameraType.Scriptable then
