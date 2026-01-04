@@ -1,13 +1,17 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local BeltSettings = require(ReplicatedStorage.Shared.BeltSettings)
+local BeltItemsMovement = require(script.Parent.BeltItemsMovement)
+local CollisionGroups = require(ReplicatedStorage.Shared.CollisionGroups)
 local OreDepletedRemoveSystem = require(script.Parent.OreDepletedRemoveSystem)
 local Components = require(ReplicatedStorage.Shared.Components)
+local Helpers = require(ReplicatedStorage.Shared.Helpers)
 local TableUtils = require(ReplicatedStorage.Shared.TableUtils)
+local Types = require(ReplicatedStorage.Shared.Types)
 
 local function MinerSystem(world)
 	for id in world:query(Components.Miner):without(Components.Model) do
 		local model = ReplicatedStorage.Models.Facilities.Miner:Clone()
-		model:SetAttribute("entityId", id)
-		model.Parent = workspace
+		Helpers.setCollisionGroupModelParts(model, CollisionGroups.Buildings, { excludeParts = { "MinerActiveArea" } })
 
 		world:insert(
 			id,
@@ -46,37 +50,43 @@ local function MinerSystem(world)
 	-- e também precisam escrever as mudanças no world (quantidade de minério nos ore nodes, além das alterações no miner e storage)
 	-- como garantir que as threads não vão causar condições de corrida ao acessar o world?
 
-	for id, miner, storage in
-		world:query(Components.Miner, Components.Storage):without(Components.MinerState_NodesDepleted)
-	do
+	for id, miner: Types.Miner, storage: Types.Storage in world:query(Components.Miner, Components.Storage) do
+		if miner.outputBelt ~= nil and storage.currentAmount > 0 then
+			local beltItems: Types.BeltItemComponent = world:get(miner.outputBelt, Components.BeltItems)
+			local beltPath: Types.BeltPath = world:get(miner.outputBelt, Components.BeltPath)
+
+			-- try to pass item to belt
+			if beltPath.distToInsertAtStart >= BeltSettings.ItemOcupancy then
+				table.insert(
+					beltItems.items,
+					{
+						distFromNext = beltPath.distToInsertAtStart,
+						item = "iron_ore",
+						mesh = Helpers.createItemMesh("iron_ore"),
+					} :: Types.BeltItem
+				)
+				beltPath.distToInsertAtStart = 0
+				storage.currentAmount -= 1
+			end
+		end
+
 		if miner.state == "ProductOverflow" then
 			if storage.currentAmount < storage.capacity then
 				miner.state = "Mining"
 				miner.startMiningTime = os.clock()
-				-- world:insert(id, miner:patch({
-				--     state = 'Mining',
-				--     startMiningTime = os.clock(),
-				-- }))
 			end
 			continue
 		end
 
-		-- mining process
 		if miner.oreNodesCount == 0 then
 			miner.state = "NodesDepleted"
-			world:insert(id, Components.MinerState_NodesDepleted())
-			-- world:insert(id, miner:patch({
-			--     state = 'NodesDepleted',
-			-- }))
 			continue
 		end
 
 		local miningTime = (1 / ((miner.speedPerNode * miner.oreNodesCount) / 60))
 		local currentMiningProgress = miner.miningProgress + world.FixedDeltaTime
-		-- local minerUpdates = miner:patch({
-		--     miningProgress = currentMiningProgress,
-		-- })
 		miner.miningProgress = currentMiningProgress
+
 		if currentMiningProgress >= miningTime then
 			local overshot = currentMiningProgress - miningTime
 			miner.miningProgress = overshot
@@ -93,43 +103,24 @@ local function MinerSystem(world)
 			end)
 			if #filteredOreNodes == 0 then
 				miner.state = "NodesDepleted"
-				world:insert(id, Components.MinerState_NodesDepleted())
-				-- world:insert(id, minerUpdates:patch({
-				--     state = 'NodesDepleted',
-				-- }))
 				continue
 			end
 
 			local oreNodeId = filteredOreNodes[math.random(1, #filteredOreNodes)]
 			local oreNode = world:get(oreNodeId, Components.OreNode)
 
-			-- world:stopDeferring()
-			-- local oreNodeUpdates = oreNode:patch({
-			--     quantity = oreNode.quantity - 1,
-			-- })
 			oreNode.quantity -= 1
 			if oreNode.quantity <= 0 then
 				world:insert(oreNodeId, Components.OreNodeDepleted())
 			end
-			-- world:insert(oreNodeId, oreNodeUpdates)
-			-- world:startDeferring()
 
 			storage.currentAmount += 1
-			-- local storageUpdates = storage:patch({
-			--     currentAmount = storage.currentAmount + 1,
-			-- })
-			-- world:insert(id, storageUpdates)
 
 			if storage.currentAmount >= storage.capacity then
 				miner.state = "ProductOverflow"
-				-- world:insert(id, minerUpdates:patch({
-				--     state = 'ProductOverflow',
-				-- }))
 				continue
 			end
 		end
-
-		-- world:insert(id, minerUpdates)
 	end
 end
 

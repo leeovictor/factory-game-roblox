@@ -1,3 +1,4 @@
+--!strict
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local matter = require(ReplicatedStorage.Packages.matter)
@@ -12,6 +13,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local mouse = Players.LocalPlayer:GetMouse()
 
+local debugEnabled = true
 local gridSize = 2
 
 -- TODO: improve this algorithm to avoid overlapping points and less loops
@@ -74,37 +76,20 @@ end
 
 local ItemMeshes = ReplicatedStorage:WaitForChild("Models"):WaitForChild("ItemMeshes")
 
-local function createNodesFromPoints(points: { Vector3 }, startIndex: number?): { Types.BeltNode }
-	local nodes: { Types.BeltNode } = {}
-
-	local index = startIndex or 1
-	for i, nodePos in ipairs(points) do
-		local dirToNext: Vector3
-		if i == #points then
-			dirToNext = nodes[#nodes].outDir
-		else
-			dirToNext = (points[i + 1] - nodePos).Unit
-		end
-
-		table.insert(nodes, {
-			pos = nodePos,
-			inDir = if i == 1 then (points[i + 1] - nodePos).Unit else (nodePos - points[i - 1]).Unit,
-			outDir = dirToNext,
-			index = index,
-		})
-		index += 1
-	end
-	return nodes
+local function nodeIsBeginningNode(world: Types.World, nodeId: Types.EntityId): boolean
+	local node: Types.BeltNodeComponent = world:get(nodeId, Components.BeltNode)
+	local beltPath: Types.BeltPath = world:get(node.beltPath, Components.BeltPath)
+	return beltPath.nodes[1] == nodeId
 end
 
-local function recalculateNodesOutDirs(nodes: { Types.BeltNode })
-	for index, node in ipairs(nodes) do
-		if index == #nodes then
-			node.outDir = nodes[#nodes].outDir
-		else
-			node.outDir = (nodes[index + 1].pos - node.pos).Unit
-		end
-	end
+local function nodeIsEndNode(world: Types.World, nodeId: Types.EntityId): boolean
+	local node: Types.BeltNodeComponent = world:get(nodeId, Components.BeltNode)
+	local beltPath: Types.BeltPath = world:get(node.beltPath, Components.BeltPath)
+	return beltPath.nodes[#beltPath.nodes] == nodeId
+end
+
+local function extendBeltAtEnd(world: Types.World, belt: Types.EntityId, points: { Vector3 })
+	-- TODO
 end
 
 local function getLengthByNodesCount(nodesCount: number): number
@@ -115,23 +100,34 @@ local function BeltPlacerSystem(world: Types.World)
 	local placer: Types.BeltPlacer = world:GetSingleton(Components.BeltPlacer)
 	local settings: Types.Settings = world:GetSingleton(Components.Settings)
 
-	local function spawnNodes(beltPathEntity: number, nodes: { Types.BeltNode }): { Types.EntityId }
+	local function spawnNodes(beltPathEntity: number, points: { Vector3 }): { Types.EntityId }
+		local nodes: { { pos: Vector3, outDir: Vector3, index: number } } = {}
+		for i, point in ipairs(points) do
+			local outDir: Vector3 = if i == #points then nodes[#nodes].outDir else (points[i + 1] - point).Unit
+			table.insert(nodes, {
+				pos = point,
+				outDir = outDir,
+				index = i,
+			})
+		end
+
 		local nodesIds: { Types.EntityId } = {}
-		-- local nodeModel = ReplicatedStorage.Models.Facilities.BeltNode
-		for _, node: Types.BeltNode in ipairs(nodes) do
+		for _, node in ipairs(nodes) do
 			local nodeInstance: Model = ReplicatedStorage.Models.Facilities.BeltNode:Clone()
 			for _, instance in ipairs(nodeInstance:GetDescendants()) do
 				if instance:IsA("BasePart") then
 					instance.CollisionGroup = CollisionGroups.BeltNodes
 				end
 			end
-			nodeInstance.Parent = workspace
 
-			local nodeId = world:spawn(
+			local id = world:spawn(
 				Components.BeltNode({
 					beltPath = beltPathEntity,
 					nodeIndex = node.index,
-				}),
+					pos = node.pos,
+					outDir = node.outDir,
+					index = node.index,
+				} :: Types.BeltNodeComponent),
 				Components.Model({
 					instance = nodeInstance,
 				}),
@@ -141,45 +137,63 @@ local function BeltPlacerSystem(world: Types.World)
 				})
 			)
 			world:commitCommands()
-			table.insert(nodesIds, nodeId)
-			nodeInstance:SetAttribute("entityId", nodeId)
+			table.insert(nodesIds, id)
 		end
 		return nodesIds
 	end
 
 	local function spawnBeltPath(points): (number, { Types.EntityId })
 		local length = getLengthByNodesCount(#points)
-		local nodes = createNodesFromPoints(points)
 
-		-- generate random items
-		local itemType = math.random() > 0.5 and "iron_ore" or "copper_ore"
-		local items = {}
-		for i = 1, 10 do
-			local item = {}
-			item.item = itemType
+		local beltItemsComp = Components.BeltItems({
+			items = {},
+		})
+		if false then
+			local itemType = math.random() > 0.5 and "iron_ore" or "copper_ore"
+			for i = 1, 10 do
+				local item = {}
+				item.item = itemType
 
-			local mesh = ItemMeshes[item.item]:Clone()
-			mesh.Parent = workspace
-			item.distFromNext = i == 1 and length or BeltSettings.ItemOcupancy * 2
-			item.mesh = mesh
-			table.insert(items, item)
+				local mesh = ItemMeshes[item.item]:Clone()
+				mesh.Parent = workspace
+				item.distFromNext = i == 1 and length or BeltSettings.ItemOcupancy * 2
+				item.mesh = mesh
+				table.insert(beltItemsComp.items, item)
+			end
 		end
 
-		local id = world:spawn(
+		local beltId = world:spawn()
+
+		local nodesIds = spawnNodes(beltId, points) :: { Types.EntityId }
+		world:insert(
+			beltId,
 			Components.BeltPath({
-				nodes = nodes,
-				startPos = points[1],
-				endPos = points[#points],
+				nodes = nodesIds,
 				distToInsertAtStart = length,
-				nodesSpawned = false,
-			}),
-			Components.BeltItems({
-				items = items,
-			})
+			} :: Types.BeltPath),
+			beltItemsComp
 		)
 		world:commitCommands()
-		local nodesIds = spawnNodes(id, nodes)
-		return id, nodesIds
+
+		return beltId, nodesIds
+	end
+
+	local function findMinerAtPosition(pos: Vector3): Types.EntityId?
+		local raycastParams = RaycastParams.new()
+		raycastParams.CollisionGroup = CollisionGroups.BuildingCollisionCheck
+
+		local ray = workspace.CurrentCamera:ScreenPointToRay(mouse.X, mouse.Y)
+		local res = workspace:Raycast(ray.Origin, ray.Direction * 100, raycastParams)
+
+		if res and res.Instance and res.Instance:FindFirstAncestorOfClass("Model") then
+			local entityId = res.Instance:FindFirstAncestorOfClass("Model"):GetAttribute("entityId")
+			local miner: Types.Miner = world:get(entityId, Components.Miner)
+			if miner ~= nil and miner.outputBelt == nil then
+				return entityId
+			end
+		end
+
+		return nil
 	end
 
 	local function findNodeAtPosition(pos: Vector3): Types.BeltNodeComponent?
@@ -218,42 +232,37 @@ local function BeltPlacerSystem(world: Types.World)
 			if inputState == Enum.UserInputState.End then
 				if not placer.startPosition then
 					local pos = Helpers.snapToGrid(mouse.Hit.Position, settings.gridSize)
+					local minerId = findMinerAtPosition(pos)
+					placer.minerToConnect = minerId
+
+					if minerId ~= nil then
+						local model = world:get(minerId, Components.Model)
+						local outputAtt = model.instance.OutputAtt :: Attachment
+						placer.startPosition = Helpers.snapToGrid(outputAtt.WorldCFrame.Position, 2)
+					else
+						placer.startPosition = pos
+					end
+
 					placer.nodeAtStartPosition = findNodeAtPosition(pos)
-					placer.startPosition = pos
-					return
+					return Enum.ContextActionResult.Sink
 				end
 
 				local endPosition = Helpers.snapToGrid(mouse.Hit.Position, settings.gridSize)
-				local nodeAtEndPosition = findNodeAtPosition(endPosition)
-
 				local points = getPathPoints(placer.startPosition, endPosition, placer.curveDirection, 100)
-				if placer.nodeAtStartPosition then
-					local beltPath: Types.BeltPath = world:get(placer.nodeAtStartPosition.beltPath, Components.BeltPath)
-					local newNodes = createNodesFromPoints(
-						TableUtils.Slice(points, 2, #points),
-						placer.nodeAtStartPosition.nodeIndex + 1
-					)
-					local nodes = spawnNodes(placer.nodeAtStartPosition.beltPath, newNodes)
-					beltPath.nodes = TableUtils.Merge(beltPath.nodes, newNodes)
+				local beltId, nodes = spawnBeltPath(points)
+				placer.nodeAtStartPosition = world:get(nodes[#nodes], Components.BeltNode)
+				placer.startPosition = nil
 
-					recalculateNodesOutDirs(beltPath.nodes)
-
-					local beltItems: Types.BeltItemComponent =
-						world:get(placer.nodeAtStartPosition.beltPath, Components.BeltItems)
-					if beltItems.items[1] then
-						beltItems.items[1].distFromNext += getLengthByNodesCount(#newNodes)
-					else
-						beltPath.distToInsertAtStart += getLengthByNodesCount(#newNodes)
-					end
-
-					placer.nodeAtStartPosition = world:get(nodes[#nodes], Components.BeltNode)
-				else
-					local _, nodes = spawnBeltPath(points)
-					placer.nodeAtStartPosition = world:get(nodes[#nodes], Components.BeltNode)
+				if placer.minerToConnect ~= nil then
+					local miner: Types.Miner = world:get(placer.minerToConnect, Components.Miner)
+					miner.outputBelt = beltId
+					placer.minerToConnect = nil
 				end
 
-				placer.startPosition = endPosition
+				return Enum.ContextActionResult.Sink
 			end
+
+			return Enum.ContextActionResult.Sink
 		end, { inputTypes = { Enum.UserInputType.MouseButton1 } })
 
 		MatterHooks.useContextAction(
@@ -261,7 +270,9 @@ local function BeltPlacerSystem(world: Types.World)
 			function(_action, inputState: Enum.UserInputState)
 				if inputState == Enum.UserInputState.Begin then
 					placer.curveDirection = placer.curveDirection == "X" and "Z" or "X"
+					return Enum.ContextActionResult.Sink
 				end
+				return Enum.ContextActionResult.Pass
 			end,
 			{ inputTypes = { Enum.KeyCode.R } }
 		)
@@ -272,13 +283,15 @@ local function BeltPlacerSystem(world: Types.World)
 				if inputState == Enum.UserInputState.Begin then
 					if placer.startPosition == nil then
 						Players.LocalPlayer.Character.Humanoid:UnequipTools()
-						return
+						return Enum.ContextActionResult.Sink
 					end
 
 					placer.startPosition = nil
 					placer.endPosition = nil
 					placer.nodeAtStartPosition = nil
+					return Enum.ContextActionResult.Sink
 				end
+				return Enum.ContextActionResult.Pass
 			end,
 			{ inputTypes = { Enum.UserInputType.MouseButton2 } }
 		)

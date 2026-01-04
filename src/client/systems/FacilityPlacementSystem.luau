@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local matter = require(ReplicatedStorage.Packages.matter)
+local CollisionGroups = require(ReplicatedStorage.Shared.CollisionGroups)
 local Components = require(ReplicatedStorage.Shared.Components)
 local Events = require(ReplicatedStorage.Shared.Events)
 local Helpers = require(ReplicatedStorage.Shared.Helpers)
@@ -11,15 +12,19 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local FacilitiesModels = ReplicatedStorage:WaitForChild("Models"):WaitForChild("Facilities")
 local mouse = Players.LocalPlayer:GetMouse()
 
+local buildingCollisionOverlapParams = OverlapParams.new()
+buildingCollisionOverlapParams.CollisionGroup = CollisionGroups.BuildingCollisionCheck
+local minerOreCheckOverlapParams = OverlapParams.new()
+minerOreCheckOverlapParams.CollisionGroup = CollisionGroups.MinerOreNodeCheck
+
 local function validateFacilityPlacement(model: Model, facilityName: string)
 	if facilityName == "Assembler" or facilityName == "Smelter" then
-		local overlapParams = OverlapParams.new()
-		overlapParams.FilterType = Enum.RaycastFilterType.Exclude
-		local gridLines = workspace:FindFirstChild("GridLines")
-		overlapParams.FilterDescendantsInstances =
-			{ model, gridLines, workspace.Baseplate, Players.LocalPlayer.Character }
 		local primaryPart = model.PrimaryPart
-		local canPlace = #workspace:GetPartBoundsInBox(primaryPart.CFrame, primaryPart.Size, overlapParams) == 0
+		local canPlace = #workspace:GetPartBoundsInBox(
+			primaryPart.CFrame,
+			primaryPart.Size,
+			buildingCollisionOverlapParams
+		) == 0
 		return {
 			canPlace = canPlace,
 			reason = canPlace and "" or "Colliding with other objects.",
@@ -27,23 +32,15 @@ local function validateFacilityPlacement(model: Model, facilityName: string)
 	elseif facilityName == "Miner" then
 		-- check if miner primary part is colliding with other objects
 		local primaryPart = model.PrimaryPart
-		local overlapParams = OverlapParams.new()
-		overlapParams.FilterType = Enum.RaycastFilterType.Exclude
-		local gridLines = workspace:FindFirstChild("GridLines")
-		overlapParams.FilterDescendantsInstances =
-			{ model, gridLines, workspace.Baseplate, Players.LocalPlayer.Character }
 		local primaryPartColliding = #workspace:GetPartBoundsInBox(
-				primaryPart.CFrame,
-				primaryPart.Size,
-				overlapParams
-			) > 0
+			primaryPart.CFrame,
+			primaryPart.Size,
+			buildingCollisionOverlapParams
+		) > 0
 
 		-- check if miner area has ores
-		local oresOverlapParams = OverlapParams.new()
-		oresOverlapParams.FilterType = Enum.RaycastFilterType.Include
-		oresOverlapParams.FilterDescendantsInstances = { workspace:FindFirstChild("Ores") }
 		local minerArea = model:FindFirstChild("MinerActiveArea")
-		local oresInstances = workspace:GetPartsInPart(minerArea, oresOverlapParams)
+		local oresInstances = workspace:GetPartsInPart(minerArea, minerOreCheckOverlapParams)
 		local minerAreaWithOres = #oresInstances > 0
 
 		local canPlace = not primaryPartColliding and minerAreaWithOres

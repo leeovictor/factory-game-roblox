@@ -1,3 +1,4 @@
+--!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local BeltSettings = require(ReplicatedStorage.Shared.BeltSettings)
 local Components = require(ReplicatedStorage.Shared.Components)
@@ -16,19 +17,22 @@ end
 local function BeltItemsMovementSystem(world, _state)
 	local meshes = {}
 	local cframes = {}
-	for _id, belt, beltItems in world:query(Components.BeltPath, Components.BeltItems) do
+	for _id, belt: Types.BeltPath, beltItems: Types.BeltItemComponent in
+		world:query(Components.BeltPath, Components.BeltItems)
+	do
 		if #beltItems.items == 0 then
 			continue
 		end
 
 		local distance = 0
+		local beltNodesView = world:query(Components.BeltNode):view()
 		for _i, item in ipairs(beltItems.items) do
 			distance += item.distFromNext
 
 			local beltLength = #belt.nodes * BeltSettings.BeltSubdiv * 2
 			local nodeIndex = findNodeBySegment(#belt.nodes, BeltSettings.BeltSubdiv * 2, distance)
-			local node: Types.BeltNode = belt.nodes[nodeIndex]
-			local prevNode = belt.nodes[nodeIndex - 1]
+			local node: Types.BeltNodeComponent = beltNodesView:get(belt.nodes[nodeIndex])
+			local prevNode: Types.BeltNodeComponent = beltNodesView:get(belt.nodes[nodeIndex - 1])
 
 			local startSeg = (nodeIndex - 1) * (BeltSettings.BeltSubdiv * 2)
 			local currentSegInNode = beltLength - distance - startSeg
@@ -37,7 +41,6 @@ local function BeltItemsMovementSystem(world, _state)
 			local itemPos
 			if prevNode and prevNode.outDir ~= node.outDir then
 				local startPosNodeInCurve = node.pos - prevNode.outDir
-
 				if currentSegInNode <= 10 then
 					itemPos = startPosNodeInCurve
 						+ prevNode.outDir * ((beltLength - distance - startSeg) / BeltSettings.BeltSubdiv)

@@ -92,6 +92,14 @@ function TableUtils.Merge(tb1, tb2)
 	return res
 end
 
+function TableUtils.MergeObject(tb1, tb2)
+	local res = table.clone(tb1)
+	for k, v in pairs(tb2) do
+		res[k] = v
+	end
+	return res
+end
+
 function TableUtils.Slice(tb, startIdx, endIdx)
 	local res = {}
 	for i = startIdx, endIdx do

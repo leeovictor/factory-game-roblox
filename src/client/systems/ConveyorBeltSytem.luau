@@ -17,8 +17,7 @@ local function ConveyorBeltSystem(world: Types.World)
 		end
 
 		debug.profilebegin("ConveyorBeltSystem")
-		local lastGapIndex = 1
-		for i = lastGapIndex, #beltItems.items do
+		for i = 1, #beltItems.items do
 			if beltItems.items[i].distFromNext > BeltSettings.ItemOcupancy then
 				beltItems.items[i].distFromNext -= 2
 				belt.distToInsertAtStart += 2
@@ -28,12 +27,7 @@ local function ConveyorBeltSystem(world: Types.World)
 			if beltItems.items[i + 1] == nil then
 				break
 			end
-
-			lastGapIndex = i + 1
 		end
-
-		belt.lastGapIndex = lastGapIndex
-		belt.stopped = beltItems.items[lastGapIndex].distFromNext == BeltSettings.ItemOcupancy
 		debug.profileend()
 	end
 end

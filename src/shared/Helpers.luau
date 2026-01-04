@@ -1,12 +1,31 @@
 local AssetService = game:GetService("AssetService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Helpers = {}
 
-function Helpers.setCollisionGroupModelParts(model: Model, collisionGroup: string)
+function Helpers.createItemMesh(item: string)
+	local ItemMeshes = ReplicatedStorage:WaitForChild("Models"):WaitForChild("ItemMeshes")
+	local mesh = ItemMeshes[item]:Clone()
+	mesh.Parent = workspace
+	return mesh
+end
+
+function Helpers.setCollisionGroupModelParts(
+	model: Model,
+	collisionGroup: string,
+	options: { excludeParts: { string } }?
+)
 	for _, part in ipairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
+			if options and options.excludeParts and table.find(options.excludeParts, part.Name) then
+				continue
+			end
 			part.CollisionGroup = collisionGroup
 		end
 	end
+end
+
+function Helpers.getModelFromPart(part: BasePart): Model?
+	return part:FindFirstAncestorOfClass("Model")
 end
 
 function Helpers.snapToGrid(position: Vector3, size: number): Vector3

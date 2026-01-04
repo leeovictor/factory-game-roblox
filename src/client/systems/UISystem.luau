@@ -13,7 +13,7 @@ local mouse = Players.LocalPlayer:GetMouse()
 local ctrlHold = false
 local function UISystem(world: Types.World, gameState)
 	MatterHooks.useContextAction("uisystem:open_facility_details_ui", function(_action, inputState: Enum.UserInputState)
-		if inputState == Enum.UserInputState.End then
+		if inputState == Enum.UserInputState.Begin then
 			if mouse.Target and mouse.Target:FindFirstAncestorWhichIsA("Model") then
 				local model = mouse.Target:FindFirstAncestorWhichIsA("Model")
 				local entityId = model:GetAttribute("entityId")

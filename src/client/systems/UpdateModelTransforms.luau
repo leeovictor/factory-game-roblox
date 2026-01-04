@@ -1,8 +1,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Components = require(ReplicatedStorage.Shared.Components)
+local Types = require(ReplicatedStorage.Shared.Types)
 
 local function UpdateModelTransformsSystem(world)
-	for id, transform, model in
+	for id, transform, model: Types.ModelComponent in
 		world:query(Components.Transform, Components.Model):without(Components.StaticTransformUpdated)
 	do
 		if model.instance:GetPivot() ~= transform.cframe then
@@ -15,7 +16,14 @@ local function UpdateModelTransformsSystem(world)
 
 	for id, record in world:queryChanged(Components.Model) do
 		if record.old == nil and record.new ~= nil and record.new.instance:GetAttribute("entityId") == nil then
+			record.new.instance.Parent = if not record.new.disabled then workspace else nil
 			record.new.instance:SetAttribute("entityId", id)
+		end
+
+		if record.old ~= nil and record.new ~= nil then
+			if record.old.disabled ~= record.new.disabled and record.new.instance ~= nil then
+				record.new.instance.Parent = if not record.new.disabled then workspace else nil
+			end
 		end
 	end
 end

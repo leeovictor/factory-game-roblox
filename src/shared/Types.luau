@@ -3,11 +3,9 @@ local matter = require(ReplicatedStorage.Packages.matter)
 
 export type EntityId = number
 
-export type BeltNode = {
-	pos: Vector3,
-	outDir: Vector3,
-	index: number,
-	inDir: Vector3,
+export type ModelComponent = {
+	instance: Model,
+	disabled: boolean,
 }
 
 export type BeltItemComponent = {
@@ -21,16 +19,16 @@ export type BeltItem = {
 }
 
 export type BeltPath = {
-	nodes: { BeltNode },
-	startPos: Vector3,
-	endPos: Vector3,
+	nodes: { EntityId },
 	distToInsertAtStart: number,
-	nodesSpawned: boolean,
 }
 
 export type BeltNodeComponent = {
 	beltPath: EntityId,
 	nodeIndex: number,
+	pos: Vector3,
+	outDir: Vector3,
+	index: number,
 }
 
 export type PathPreview = {
@@ -49,6 +47,7 @@ export type BeltPlacer = {
 	pathPreview: EntityId?,
 	enabled: boolean,
 	nodeAtStartPosition: BeltNodeComponent?,
+	minerToConnect: EntityId?,
 }
 export type World = typeof(matter.World) & {
 	GetSingleton: (self: World, component: any) -> any,
@@ -92,6 +91,23 @@ export type GridLines = {
 	center: Vector3,
 	cachedParts: { [number]: Instance }?,
 	enabled: boolean,
+}
+
+export type MinerStates = "Mining" | "NodesDepleted" | "ProductOverflow"
+
+export type Miner = {
+	miningProgress: number,
+	oreNodes: { EntityId },
+	oreNodesCount: number,
+	speedPerNode: number,
+	startMiningTime: number,
+	state: MinerStates,
+	outputBelt: EntityId?,
+}
+
+export type Storage = {
+	capacity: number,
+	currentAmount: number,
 }
 
 return {}
