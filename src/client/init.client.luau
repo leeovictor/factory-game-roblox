@@ -26,6 +26,7 @@ function extendWorld(world): Types.World
 end
 
 local gameState = {
+	debug = false,
 	screens = {},
 }
 local world = extendWorld(Matter.World.new())

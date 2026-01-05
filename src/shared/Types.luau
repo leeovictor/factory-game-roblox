@@ -21,14 +21,18 @@ export type BeltItem = {
 export type BeltPath = {
 	nodes: { EntityId },
 	distToInsertAtStart: number,
+	beltNodeOutput: EntityId?,
+	speed: number,
 }
 
 export type BeltNodeComponent = {
 	beltPath: EntityId,
 	nodeIndex: number,
 	pos: Vector3,
-	outDir: Vector3,
+	dirVector: Vector3,
+	cframe: CFrame,
 	index: number,
+	direction: "top" | "right" | "left",
 }
 
 export type PathPreview = {
@@ -46,7 +50,6 @@ export type BeltPlacer = {
 	curveDirection: string,
 	pathPreview: EntityId?,
 	enabled: boolean,
-	nodeAtStartPosition: BeltNodeComponent?,
 	minerToConnect: EntityId?,
 }
 export type World = typeof(matter.World) & {

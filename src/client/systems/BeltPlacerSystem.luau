@@ -93,7 +93,36 @@ local function extendBeltAtEnd(world: Types.World, belt: Types.EntityId, points:
 end
 
 local function getLengthByNodesCount(nodesCount: number): number
-	return nodesCount * BeltSettings.BeltSubdiv * 2
+	return nodesCount * BeltSettings.BeltSubdiv
+end
+
+local function findDirectionFromVectors(v1: Vector3, v2: Vector3): "top" | "right" | "left"
+	if v1.X == 1 then
+		if v2.Z == 1 then
+			return "right"
+		elseif v2.Z == -1 then
+			return "left"
+		end
+	elseif v1.X == -1 then
+		if v2.Z == 1 then
+			return "left"
+		elseif v2.Z == -1 then
+			return "right"
+		end
+	elseif v1.Z == 1 then
+		if v2.X == 1 then
+			return "left"
+		elseif v2.X == -1 then
+			return "right"
+		end
+	elseif v1.Z == -1 then
+		if v2.X == 1 then
+			return "right"
+		elseif v2.X == -1 then
+			return "left"
+		end
+	end
+	return "top"
 end
 
 local function BeltPlacerSystem(world: Types.World)
@@ -101,14 +130,25 @@ local function BeltPlacerSystem(world: Types.World)
 	local settings: Types.Settings = world:GetSingleton(Components.Settings)
 
 	local function spawnNodes(beltPathEntity: number, points: { Vector3 }): { Types.EntityId }
-		local nodes: { { pos: Vector3, outDir: Vector3, index: number } } = {}
-		for i, point in ipairs(points) do
-			local outDir: Vector3 = if i == #points then nodes[#nodes].outDir else (points[i + 1] - point).Unit
-			table.insert(nodes, {
-				pos = point,
-				outDir = outDir,
-				index = i,
-			})
+		assert(#points >= 2, "Need at least 2 points to spawn belt nodes")
+
+		local nodes: { { pos: Vector3, index: number, direction: "top" | "right" | "left", dirVector: Vector3 } } = {}
+
+		for i = 1, #points do
+			local inDir = if i == 1 then nil else (points[i] - points[i - 1]).Unit
+			local outDir = if i == #points then nil else (points[i + 1] - points[i]).Unit
+
+			local direction = if inDir and outDir then findDirectionFromVectors(inDir, outDir) else "top"
+
+			table.insert(
+				nodes,
+				{
+					pos = points[i],
+					dirVector = if inDir then inDir else outDir,
+					direction = direction,
+					index = i,
+				} :: Types.BeltNodeComponent
+			)
 		end
 
 		local nodesIds: { Types.EntityId } = {}
@@ -125,14 +165,16 @@ local function BeltPlacerSystem(world: Types.World)
 					beltPath = beltPathEntity,
 					nodeIndex = node.index,
 					pos = node.pos,
-					outDir = node.outDir,
+					cframe = CFrame.new(node.pos, node.pos + node.dirVector),
 					index = node.index,
+					direction = node.direction,
+					dirVector = node.dirVector,
 				} :: Types.BeltNodeComponent),
 				Components.Model({
 					instance = nodeInstance,
 				}),
 				Components.Transform({
-					cframe = CFrame.new(node.pos),
+					cframe = CFrame.new(node.pos, node.pos + node.dirVector),
 					isStatic = true,
 				})
 			)
@@ -142,12 +184,14 @@ local function BeltPlacerSystem(world: Types.World)
 		return nodesIds
 	end
 
-	local function spawnBeltPath(points): (number, { Types.EntityId })
+	local function spawnBeltPath(points: { Vector3 }, nodeAtEnd: Types.EntityId?): (number, { Types.EntityId })
+		if nodeAtEnd ~= nil then
+			points = TableUtils.Slice(points, 1, #points - 1)
+		end
+
 		local length = getLengthByNodesCount(#points)
 
-		local beltItemsComp = Components.BeltItems({
-			items = {},
-		})
+		local beltItemsComp = Components.BeltItems({ items = {} })
 		if false then
 			local itemType = math.random() > 0.5 and "iron_ore" or "copper_ore"
 			for i = 1, 10 do
@@ -170,6 +214,8 @@ local function BeltPlacerSystem(world: Types.World)
 			Components.BeltPath({
 				nodes = nodesIds,
 				distToInsertAtStart = length,
+				beltNodeOutput = nodeAtEnd,
+				speed = BeltSettings.BeltSpeeds.slow,
 			} :: Types.BeltPath),
 			beltItemsComp
 		)
@@ -196,17 +242,26 @@ local function BeltPlacerSystem(world: Types.World)
 		return nil
 	end
 
-	local function findNodeAtPosition(pos: Vector3): Types.BeltNodeComponent?
+	local function findNodeAtPosition(pos: Vector3): Types.EntityId?
 		local raycastParams = RaycastParams.new()
-		raycastParams.CollisionGroup = CollisionGroups.BeltNodes
+		raycastParams.CollisionGroup = CollisionGroups.BuildingCollisionCheck
 
-		local start = pos
-		local res = workspace:Raycast(start + Vector3.yAxis * 2, -Vector3.yAxis * 20, raycastParams)
+		local res = workspace:Raycast(pos + Vector3.yAxis * 10, -Vector3.yAxis * 20, raycastParams)
 
 		if res and res.Instance and res.Instance:FindFirstAncestorOfClass("Model") then
 			local entityId = res.Instance:FindFirstAncestorOfClass("Model"):GetAttribute("entityId")
-			return world:get(entityId, Components.BeltNode)
+			if entityId == nil then
+				return nil
+			end
+
+			local beltNode: Types.BeltNodeComponent = world:get(entityId, Components.BeltNode)
+			if beltNode == nil then
+				return nil
+			end
+
+			return entityId
 		end
+
 		return nil
 	end
 
@@ -215,7 +270,6 @@ local function BeltPlacerSystem(world: Types.World)
 			placer.enabled = false
 			placer.startPosition = nil
 			placer.endPosition = nil
-			placer.nodeAtStartPosition = nil
 		end
 	end
 	for _, event in matter.useEvent(Events, "ToolEquiped") do
@@ -243,14 +297,14 @@ local function BeltPlacerSystem(world: Types.World)
 						placer.startPosition = pos
 					end
 
-					placer.nodeAtStartPosition = findNodeAtPosition(pos)
 					return Enum.ContextActionResult.Sink
 				end
 
 				local endPosition = Helpers.snapToGrid(mouse.Hit.Position, settings.gridSize)
+				local nodeAtEnd = findNodeAtPosition(endPosition)
+
 				local points = getPathPoints(placer.startPosition, endPosition, placer.curveDirection, 100)
-				local beltId, nodes = spawnBeltPath(points)
-				placer.nodeAtStartPosition = world:get(nodes[#nodes], Components.BeltNode)
+				local beltId = spawnBeltPath(points, nodeAtEnd)
 				placer.startPosition = nil
 
 				if placer.minerToConnect ~= nil then
@@ -288,7 +342,6 @@ local function BeltPlacerSystem(world: Types.World)
 
 					placer.startPosition = nil
 					placer.endPosition = nil
-					placer.nodeAtStartPosition = nil
 					return Enum.ContextActionResult.Sink
 				end
 				return Enum.ContextActionResult.Pass

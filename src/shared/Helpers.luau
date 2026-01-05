@@ -2,7 +2,7 @@ local AssetService = game:GetService("AssetService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Helpers = {}
 
-function Helpers.createItemMesh(item: string)
+function Helpers.createItemMesh(item: string): MeshPart
 	local ItemMeshes = ReplicatedStorage:WaitForChild("Models"):WaitForChild("ItemMeshes")
 	local mesh = ItemMeshes[item]:Clone()
 	mesh.Parent = workspace
