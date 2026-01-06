@@ -42,10 +42,13 @@ local function GridLinesRenderer(world: Types.World)
 		gridLines.cachedParts = {}
 	end
 
-	local needsUpdate = gridLines.enabled and gridLines.gridSize ~= settings.gridSize
-		or gridLines.center ~= player.Character
-		or player.Character.HumanoidRootPart.Position
-		or Vector3.zero
+	local needsUpdate = gridLines.enabled
+		and (
+			gridLines.gridSize ~= settings.gridSize
+			or gridLines.center ~= player.Character
+			or player.Character.HumanoidRootPart.Position
+			or Vector3.zero
+		)
 
 	if needsUpdate then
 		gridLines.gridSize = settings.gridSize
