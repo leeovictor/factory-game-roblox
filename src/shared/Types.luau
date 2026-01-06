@@ -23,6 +23,10 @@ export type BeltPath = {
 	distToInsertAtStart: number,
 	beltNodeOutput: EntityId?,
 	speed: number,
+	prevBelt: EntityId?,
+	nextBelt: EntityId?,
+	lastGapIndex: number?,
+	minerConnected: EntityId?,
 }
 
 export type BeltNodeComponent = {
@@ -51,6 +55,7 @@ export type BeltPlacer = {
 	pathPreview: EntityId?,
 	enabled: boolean,
 	minerToConnect: EntityId?,
+	lastBelt: EntityId?,
 }
 export type World = typeof(matter.World) & {
 	GetSingleton: (self: World, component: any) -> any,

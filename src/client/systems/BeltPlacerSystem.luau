@@ -184,9 +184,17 @@ local function BeltPlacerSystem(world: Types.World)
 		return nodesIds
 	end
 
-	local function spawnBeltPath(points: { Vector3 }, nodeAtEnd: Types.EntityId?): (number, { Types.EntityId })
+	local function spawnBeltPath(
+		points: { Vector3 },
+		nodeAtEnd: Types.EntityId?,
+		lastBelt: Types.EntityId?
+	): (number, { Types.EntityId })
 		if nodeAtEnd ~= nil then
 			points = TableUtils.Slice(points, 1, #points - 1)
+		end
+
+		if lastBelt ~= nil then
+			points = TableUtils.Slice(points, 2, #points)
 		end
 
 		local length = getLengthByNodesCount(#points)
@@ -216,6 +224,8 @@ local function BeltPlacerSystem(world: Types.World)
 				distToInsertAtStart = length,
 				beltNodeOutput = nodeAtEnd,
 				speed = BeltSettings.BeltSpeeds.slow,
+				prevBelt = lastBelt,
+				nextBelt = nil,
 			} :: Types.BeltPath),
 			beltItemsComp
 		)
@@ -270,6 +280,7 @@ local function BeltPlacerSystem(world: Types.World)
 			placer.enabled = false
 			placer.startPosition = nil
 			placer.endPosition = nil
+			placer.lastBelt = nil
 		end
 	end
 	for _, event in matter.useEvent(Events, "ToolEquiped") do
@@ -304,11 +315,21 @@ local function BeltPlacerSystem(world: Types.World)
 				local nodeAtEnd = findNodeAtPosition(endPosition)
 
 				local points = getPathPoints(placer.startPosition, endPosition, placer.curveDirection, 100)
-				local beltId = spawnBeltPath(points, nodeAtEnd)
-				placer.startPosition = nil
+				local beltId = spawnBeltPath(points, nodeAtEnd, placer.lastBelt)
+
+				if placer.lastBelt ~= nil then
+					local lastBeltPath: Types.BeltPath = world:get(placer.lastBelt, Components.BeltPath)
+					lastBeltPath.nextBelt = beltId
+				end
+
+				placer.lastBelt = beltId
+
+				placer.startPosition = points[#points]
 
 				if placer.minerToConnect ~= nil then
 					local miner: Types.Miner = world:get(placer.minerToConnect, Components.Miner)
+					local beltPath: Types.BeltPath = world:get(beltId, Components.BeltPath)
+					beltPath.minerConnected = placer.minerToConnect
 					miner.outputBelt = beltId
 					placer.minerToConnect = nil
 				end
@@ -342,6 +363,7 @@ local function BeltPlacerSystem(world: Types.World)
 
 					placer.startPosition = nil
 					placer.endPosition = nil
+					placer.lastBelt = nil
 					return Enum.ContextActionResult.Sink
 				end
 				return Enum.ContextActionResult.Pass

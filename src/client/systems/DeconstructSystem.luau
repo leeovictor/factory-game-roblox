@@ -55,12 +55,34 @@ local function DeconstructSystem(world: Types.World)
 				for _, nodeId in ipairs(belt.nodes) do
 					world:despawn(nodeId)
 				end
+
+				local prevBeltId = belt.prevBelt
+				local nextBeltId = belt.nextBelt
+				local minerConnected = belt.minerConnected
+				if prevBeltId then
+					local prevBelt: Types.BeltPath = world:get(prevBeltId, Components.BeltPath)
+					prevBelt.nextBelt = nil
+				end
+				if nextBeltId then
+					local nextBelt: Types.BeltPath = world:get(nextBeltId, Components.BeltPath)
+					nextBelt.prevBelt = nil
+				end
+				if minerConnected then
+					local miner: Types.Miner = world:get(minerConnected, Components.Miner)
+					miner.outputBelt = nil
+				end
+
 				world:despawn(beltNode.beltPath)
 				return Enum.ContextActionResult.Sink
 			end
 
 			local miner = world:get(entity, Components.Miner)
 			if miner then -- delete the miner
+				if miner.outputBelt then
+					local belt: Types.BeltPath = world:get(miner.outputBelt, Components.BeltPath)
+					belt.minerConnected = nil
+				end
+
 				world:despawn(entity)
 				return Enum.ContextActionResult.Sink
 			end
