@@ -47,7 +47,7 @@ function MinerInfoUIController.UpdateMinerInfo(self: MinerInfoUIController, mine
 		.. " / "
 		.. tostring(minerInfo.storage.capacity)
 	self.screen.Container.OreCount.Text = "Ore Veins: " .. tostring(minerInfo.veinsCount)
-	self.screen.Container.ProgressBar.Bar.Size = UDim2.new(minerInfo.miningProgress, 0, 1, 0)
+	self.screen.Container.ProgressBar.Bar.Size = UDim2.fromScale(minerInfo.miningProgress, 1)
 end
 
 function MinerInfoUIController.Show(self: MinerInfoUIController, entityId: number)
