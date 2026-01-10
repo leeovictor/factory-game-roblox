@@ -1,7 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local BeltPlacerSystem = require(script.Parent.BeltPlacerSystem)
 local FacilityPlacementSystem = require(script.Parent.FacilityPlacementSystem)
-local matter = require(ReplicatedStorage.Matter)
 local Components = require(ReplicatedStorage.Shared.Components)
 local Types = require(ReplicatedStorage.Shared.Types)
 

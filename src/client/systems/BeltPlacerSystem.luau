@@ -12,8 +12,6 @@ local TableUtils = require(ReplicatedStorage.Shared.TableUtils)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local mouse = Players.LocalPlayer:GetMouse()
-
-local debugEnabled = true
 local gridSize = 2
 
 -- TODO: improve this algorithm to avoid overlapping points and less loops
@@ -75,22 +73,6 @@ local function getPathPoints(startPos: Vector3, endPos: Vector3, curveDirection:
 end
 
 local ItemMeshes = ReplicatedStorage:WaitForChild("Models"):WaitForChild("ItemMeshes")
-
-local function nodeIsBeginningNode(world: Types.World, nodeId: Types.EntityId): boolean
-	local node: Types.BeltNodeComponent = world:get(nodeId, Components.BeltNode)
-	local beltPath: Types.BeltPath = world:get(node.beltPath, Components.BeltPath)
-	return beltPath.nodes[1] == nodeId
-end
-
-local function nodeIsEndNode(world: Types.World, nodeId: Types.EntityId): boolean
-	local node: Types.BeltNodeComponent = world:get(nodeId, Components.BeltNode)
-	local beltPath: Types.BeltPath = world:get(node.beltPath, Components.BeltPath)
-	return beltPath.nodes[#beltPath.nodes] == nodeId
-end
-
-local function extendBeltAtEnd(world: Types.World, belt: Types.EntityId, points: { Vector3 })
-	-- TODO
-end
 
 local function getLengthByNodesCount(nodesCount: number): number
 	return nodesCount * BeltSettings.BeltSubdiv
@@ -234,7 +216,7 @@ local function BeltPlacerSystem(world: Types.World)
 		return beltId, nodesIds
 	end
 
-	local function findMinerAtPosition(pos: Vector3): Types.EntityId?
+	local function findMinerAtPosition(): Types.EntityId?
 		local raycastParams = RaycastParams.new()
 		raycastParams.CollisionGroup = CollisionGroups.BuildingCollisionCheck
 
@@ -297,7 +279,7 @@ local function BeltPlacerSystem(world: Types.World)
 			if inputState == Enum.UserInputState.End then
 				if not placer.startPosition then
 					local pos = Helpers.snapToGrid(mouse.Hit.Position, settings.gridSize)
-					local minerId = findMinerAtPosition(pos)
+					local minerId = findMinerAtPosition()
 					placer.minerToConnect = minerId
 
 					if minerId ~= nil then
