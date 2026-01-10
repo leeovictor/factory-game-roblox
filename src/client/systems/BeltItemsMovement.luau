@@ -22,17 +22,14 @@ local function BeltItemsMovementSystem(world: Types.World, gameState)
 			continue
 		end
 
-		local distance = 0
 		for _i, item in ipairs(beltItems.items) do
-			distance += item.distFromNext
-
 			local length = #belt.nodes * BeltSettings.BeltSubdiv
-			local nodeIndex = findNodeByItemDistance(distance, length)
+			local nodeIndex = findNodeByItemDistance(item.pos, length)
 
 			assert(nodeIndex ~= 0, "NodeIndex is zero")
 			assert(nodeIndex <= #belt.nodes, "NodeIndex exceeds belt nodes count")
 
-			local nodeProgress = (length - distance) - (BeltSettings.BeltSubdiv * (nodeIndex - 1))
+			local nodeProgress = (length - item.pos) - (BeltSettings.BeltSubdiv * (nodeIndex - 1))
 			local node: Types.BeltNodeComponent = beltNodesView:get(belt.nodes[nodeIndex])
 
 			local nodeStartPoint = node.pos - node.cframe.LookVector
@@ -41,13 +38,6 @@ local function BeltItemsMovementSystem(world: Types.World, gameState)
 			local leftPoint = node.pos - node.cframe.RightVector
 
 			local progress = nodeProgress / BeltSettings.BeltSubdiv -- 0 to 1
-
-			if gameState.debug then
-				Gizmos.setColor3(Color3.fromRGB(53, 255, 188))
-				Gizmos.drawPoint(rightPoint)
-				Gizmos.setColor3(Color3.fromRGB(71, 38, 255))
-				Gizmos.drawPoint(leftPoint)
-			end
 
 			local itemPos = nil
 			if node.direction == "top" then

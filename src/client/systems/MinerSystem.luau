@@ -56,16 +56,19 @@ local function MinerSystem(world)
 			local beltPath: Types.BeltPath = world:get(miner.outputBelt, Components.BeltPath)
 
 			-- try to pass item to belt
-			if beltPath.distToInsertAtStart >= BeltSettings.ItemOcupancy then
+			local beltLength = #beltPath.nodes * BeltSettings.BeltSubdiv
+			if
+				#beltItems.items == 0
+				or beltLength - beltItems.items[#beltItems.items].pos >= BeltSettings.ItemOcupancy
+			then
 				table.insert(
 					beltItems.items,
 					{
-						distFromNext = beltPath.distToInsertAtStart,
+						pos = beltLength,
 						item = "iron_ore",
 						mesh = Helpers.createItemMesh("iron_ore"),
 					} :: Types.BeltItem
 				)
-				beltPath.distToInsertAtStart = 0
 				storage.currentAmount -= 1
 			end
 		end

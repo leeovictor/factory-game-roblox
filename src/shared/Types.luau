@@ -1,5 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local matter = require(ReplicatedStorage.Matter)
+local Matter = require(ReplicatedStorage.Matter)
 
 export type EntityId = number
 
@@ -14,7 +14,7 @@ export type BeltItemComponent = {
 
 export type BeltItem = {
 	item: string,
-	distFromNext: number,
+	pos: number,
 	mesh: MeshPart,
 }
 
@@ -23,9 +23,6 @@ export type BeltPath = {
 	distToInsertAtStart: number,
 	beltNodeOutput: EntityId?,
 	speed: number,
-	prevBelt: EntityId?,
-	nextBelt: EntityId?,
-	lastGapIndex: number?,
 	minerConnected: EntityId?,
 }
 
@@ -57,7 +54,7 @@ export type BeltPlacer = {
 	minerToConnect: EntityId?,
 	lastBelt: EntityId?,
 }
-export type World = typeof(matter.World) & {
+export type World = typeof(Matter.World) & {
 	GetSingleton: (self: World, component: any) -> any,
 	FixedDeltaTime: number,
 }

@@ -299,12 +299,12 @@ local function BeltPlacerSystem(world: Types.World)
 				local points = getPathPoints(placer.startPosition, endPosition, placer.curveDirection, 100)
 				local beltId = spawnBeltPath(points, nodeAtEnd, placer.lastBelt)
 
-				if placer.lastBelt ~= nil then
-					local lastBeltPath: Types.BeltPath = world:get(placer.lastBelt, Components.BeltPath)
-					lastBeltPath.nextBelt = beltId
-				end
+				-- if placer.lastBelt ~= nil then
+				-- 	local lastBeltPath: Types.BeltPath = world:get(placer.lastBelt, Components.BeltPath)
+				-- 	lastBeltPath.nextBelt = beltId
+				-- end
 
-				placer.lastBelt = beltId
+				-- placer.lastBelt = beltId
 
 				placer.startPosition = points[#points]
 
