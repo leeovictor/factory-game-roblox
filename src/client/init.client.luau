@@ -2,12 +2,14 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+
 local Components = require(ReplicatedStorage.Shared.Components)
-local Matter = require(ReplicatedStorage.Packages.matter)
+local Matter = require(ReplicatedStorage.Matter)
 local Plasma = require(ReplicatedStorage.Packages.plasma)
 local Events = require(ReplicatedStorage.Shared.Events)
 local FixedUpdate = require(ReplicatedStorage.Shared.FixedUpdate)
 local Types = require(ReplicatedStorage.Shared.Types)
+
 local orePatchGenerator = require(script.OrePatchGen)
 local MinerInfoScreen = require(script.ui.MinerInfoScreen)
 

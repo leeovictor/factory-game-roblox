@@ -1,5 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local matter = require(ReplicatedStorage.Packages.matter)
+local matter = require(ReplicatedStorage.Matter)
 
 export type EntityId = number
 

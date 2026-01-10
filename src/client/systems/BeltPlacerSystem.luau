@@ -1,7 +1,7 @@
 --!strict
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local matter = require(ReplicatedStorage.Packages.matter)
+local matter = require(ReplicatedStorage.Matter)
 local BeltSettings = require(ReplicatedStorage.Shared.BeltSettings)
 local CollisionGroups = require(ReplicatedStorage.Shared.CollisionGroups)
 local Components = require(ReplicatedStorage.Shared.Components)

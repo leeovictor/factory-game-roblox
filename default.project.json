@@ -7,6 +7,9 @@
       "Packages": {
         "$path": "Packages"
       },
+      "Matter": {
+        "$path": "src/shared/Matter"
+      },
       "Shared": {
         "$path": "src/shared"
       }

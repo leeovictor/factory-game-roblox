@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local OreDepletedRemoveSystem = require(script.Parent.OreDepletedRemoveSystem)
 local RemoveModelsSytem = require(script.Parent.RemoveModelsSytem)
-local matter = require(ReplicatedStorage.Packages.matter)
+local matter = require(ReplicatedStorage.Matter)
 local Components = require(ReplicatedStorage.Shared.Components)
 
 local function ProductionFacility(world)

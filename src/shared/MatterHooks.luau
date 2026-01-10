@@ -1,6 +1,6 @@
 local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local matter = require(ReplicatedStorage.Packages.matter)
+local matter = require(ReplicatedStorage.Matter)
 
 export type ContextActionOptions = {
 	createButton: boolean?,
@@ -13,9 +13,7 @@ type NormalizedOptions = {
 
 local function normalizeOptions(options: ContextActionOptions?): NormalizedOptions
 	return {
-		createButton = if options and options.createButton ~= nil
-			then options.createButton
-			else false,
+		createButton = if options and options.createButton ~= nil then options.createButton else false,
 		inputTypes = if options and options.inputTypes then options.inputTypes else {},
 	}
 end
@@ -55,11 +53,7 @@ end
 
 local function useContextAction(
 	actionName: string,
-	callback: (
-		string,
-		Enum.UserInputState,
-		InputObject
-	) -> Enum.ContextActionResult?,
+	callback: (string, Enum.UserInputState, InputObject) -> Enum.ContextActionResult?,
 	options
 )
 	local storage = matter.useHookState(actionName, cleanup)
@@ -84,6 +78,6 @@ local function useChange(dependencies: { unknown }, discriminator: unknown?): bo
 end
 
 return {
-    useContextAction = useContextAction,
+	useContextAction = useContextAction,
 	useChange = useChange,
 }

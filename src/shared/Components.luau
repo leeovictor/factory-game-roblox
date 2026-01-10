@@ -1,5 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Matter = require(ReplicatedStorage.Packages.matter)
+local Matter = require(ReplicatedStorage.Matter)
 
 return {
 	Miner = Matter.component("Miner"),

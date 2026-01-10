@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local Matter = require(ReplicatedStorage.Packages.matter)
+local Matter = require(ReplicatedStorage.Matter)
 local Plasma = require(ReplicatedStorage.Packages.plasma)
 local debugger = Matter.Debugger.new(Plasma)
 local widgets = debugger:getWidgets()

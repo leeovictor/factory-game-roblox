@@ -1,6 +1,6 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local matter = require(ReplicatedStorage.Packages.matter)
+local matter = require(ReplicatedStorage.Matter)
 local Components = require(ReplicatedStorage.Shared.Components)
 local Events = require(ReplicatedStorage.Shared.Events)
 local Helpers = require(ReplicatedStorage.Shared.Helpers)
