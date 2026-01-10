@@ -13,8 +13,6 @@ local function BeltItemsMovementSystem(world: Types.World, gameState)
 	local meshes = {}
 	local cframes = {}
 
-	local beltNodesView = world:query(Components.BeltNode):view()
-
 	for _id, belt: Types.BeltPath, beltItems: Types.BeltItemComponent in
 		world:query(Components.BeltPath, Components.BeltItems)
 	do
@@ -30,7 +28,7 @@ local function BeltItemsMovementSystem(world: Types.World, gameState)
 			assert(nodeIndex <= #belt.nodes, "NodeIndex exceeds belt nodes count")
 
 			local nodeProgress = (length - item.pos) - (BeltSettings.BeltSubdiv * (nodeIndex - 1))
-			local node: Types.BeltNodeComponent = beltNodesView:get(belt.nodes[nodeIndex])
+			local node: Types.BeltNodeComponent = world:get(belt.nodes[nodeIndex], Components.BeltNode)
 
 			local nodeStartPoint = node.pos - node.cframe.LookVector
 			local nodeEndPoint = node.pos + node.cframe.LookVector
