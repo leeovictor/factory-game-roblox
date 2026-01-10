@@ -93,16 +93,20 @@ local function ConveyorBeltSystem(world: Types.World)
 		end
 	end
 
-	local function insertItemIntoNextBelt(beltId: Types.EntityId, item: string)
+	local function insertItemIntoNextBelt(beltId: Types.EntityId, item: Types.BeltItem)
+		if item.distFromNext > 0 then
+			return false
+		end
+
 		local beltPath: Types.BeltPath = world:get(beltId, Components.BeltPath)
 		local beltItems: Types.BeltItemComponent = world:get(beltId, Components.BeltItems)
 
 		table.insert(
 			beltItems.items,
 			{
-				item = item,
+				item = item.item,
 				distFromNext = beltPath.distToInsertAtStart,
-				mesh = Helpers.createItemMesh(item),
+				mesh = Helpers.createItemMesh(item.item),
 			} :: Types.BeltItem
 		)
 		beltPath.distToInsertAtStart = 0
@@ -121,7 +125,7 @@ local function ConveyorBeltSystem(world: Types.World)
 			local beltPath: Types.BeltPath = world:get(currentBelt, Components.BeltPath)
 			local beltItems: Types.BeltItemComponent = world:get(currentBelt, Components.BeltItems)
 
-			for i = beltPath.lastGapIndex or 1, #beltItems.items do
+			for i = 1, #beltItems.items do
 				if beltItems.items[i].distFromNext > BeltSettings.ItemOcupancy then
 					beltItems.items[i].distFromNext -= beltPath.speed
 					beltPath.distToInsertAtStart += beltPath.speed
@@ -132,22 +136,19 @@ local function ConveyorBeltSystem(world: Types.World)
 					continue
 				end
 
-				local nextBeltPath: Types.BeltPath = world:get(beltPath.nextBelt, Components.BeltPath)
-				if beltItems.items[i].distFromNext > 0 then
+				if i == 1 then
+					local nextBeltPath: Types.BeltPath = world:get(beltPath.nextBelt, Components.BeltPath)
 					if
 						beltItems.items[i].distFromNext - beltPath.speed + nextBeltPath.distToInsertAtStart
 						>= BeltSettings.ItemOcupancy
 					then
-						beltItems.items[i].distFromNext -= beltPath.speed
-						beltPath.distToInsertAtStart += beltPath.speed
-
-						if beltItems.items[i].distFromNext == 0 then
-							if insertItemIntoNextBelt(beltPath.nextBelt, beltItems.items[i].item) then
-								beltItems.items[i].mesh:Destroy()
-								table.remove(beltItems.items, i)
-							end
+						if beltItems.items[i].distFromNext > 0 then
+							beltItems.items[i].distFromNext -= beltPath.speed
+							beltPath.distToInsertAtStart += beltPath.speed
+						elseif insertItemIntoNextBelt(beltPath.nextBelt, beltItems.items[i]) then
+							beltItems.items[i].mesh:Destroy()
+							table.remove(beltItems.items, i)
 						end
-
 						break
 					end
 				end

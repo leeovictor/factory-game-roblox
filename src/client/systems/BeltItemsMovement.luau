@@ -28,6 +28,10 @@ local function BeltItemsMovementSystem(world: Types.World, gameState)
 
 			local length = #belt.nodes * BeltSettings.BeltSubdiv
 			local nodeIndex = findNodeByItemDistance(distance, length)
+
+			assert(nodeIndex ~= 0, "NodeIndex is zero")
+			assert(nodeIndex <= #belt.nodes, "NodeIndex exceeds belt nodes count")
+
 			local nodeProgress = (length - distance) - (BeltSettings.BeltSubdiv * (nodeIndex - 1))
 			local node: Types.BeltNodeComponent = beltNodesView:get(belt.nodes[nodeIndex])
 
