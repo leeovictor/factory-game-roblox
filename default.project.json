@@ -2,6 +2,7 @@
   "name": "factory-game",
   "tree": {
     "$className": "DataModel",
+    "$ignoreUnknownInstances": true,
 
     "ReplicatedStorage": {
       "Packages": {
