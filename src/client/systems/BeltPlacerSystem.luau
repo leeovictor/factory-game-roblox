@@ -166,15 +166,7 @@ local function BeltPlacerSystem(world: Types.World)
 		return nodesIds
 	end
 
-	local function spawnBelt(
-		points: { Vector3 },
-		nodeAtEnd: Types.EntityId?,
-		lastBelt: Types.EntityId?
-	): (number, { Types.EntityId })
-		if nodeAtEnd ~= nil then
-			points = TableUtils.Slice(points, 1, #points - 1)
-		end
-
+	local function spawnBelt(points: { Vector3 }, lastBelt: Types.EntityId?): (number, { Types.EntityId })
 		if lastBelt ~= nil then
 			points = TableUtils.Slice(points, 2, #points)
 		end
@@ -204,8 +196,7 @@ local function BeltPlacerSystem(world: Types.World)
 			Components.BeltPath({
 				nodes = nodesIds,
 				distToInsertAtStart = length - 1,
-				beltNodeOutput = nodeAtEnd,
-				speed = BeltSettings.BeltSpeeds.fast,
+				speed = BeltSettings.BeltSpeeds.medium,
 				prevBelt = lastBelt,
 				nextBelt = nil,
 			} :: Types.BeltPath),
@@ -216,15 +207,12 @@ local function BeltPlacerSystem(world: Types.World)
 		return beltId, nodesIds
 	end
 
-	local function extendBelt(beltId: Types.EntityId, points: { Vector3 })
+	local function extendBelt(beltId: Types.EntityId, pointsToInsert: { Vector3 })
 		-- TODO: permitir adicionar no minimo 1 node ao invez de 2
-		if #points < 3 then
+		if #pointsToInsert < 3 then
 			warn("Need at least 3 points to extend belt")
 			return
 		end
-
-		local pointsToInsert = table.clone(points)
-		table.remove(pointsToInsert, 1)
 
 		local beltPath: Types.BeltPath = world:get(placer.lastBelt, Components.BeltPath)
 
@@ -325,10 +313,14 @@ local function BeltPlacerSystem(world: Types.World)
 
 				local points = getPathPoints(placer.startPosition, endPosition, placer.curveDirection, 100)
 
-				if placer.lastBelt then
-					extendBelt(placer.lastBelt, points)
+				if placer.lastBelt ~= nil then
+					local pointsToInsert = if nodeAtEnd ~= nil
+						then TableUtils.Slice(points, 2, #points - 1)
+						else TableUtils.Slice(points, 2, #points)
+
+					extendBelt(placer.lastBelt, pointsToInsert)
 				else
-					placer.lastBelt = spawnBelt(points, nodeAtEnd, placer.lastBelt)
+					placer.lastBelt = spawnBelt(points, placer.lastBelt)
 				end
 
 				placer.startPosition = points[#points]
@@ -339,6 +331,13 @@ local function BeltPlacerSystem(world: Types.World)
 					beltPath.minerConnected = placer.minerToConnect
 					miner.outputBelt = placer.lastBelt
 					placer.minerToConnect = nil
+				end
+
+				if nodeAtEnd ~= nil then
+					local beltPath: Types.BeltPath = world:get(placer.lastBelt, Components.BeltPath)
+					beltPath.beltNodeOutput = nodeAtEnd
+					placer.startPosition = nil
+					placer.lastBelt = nil
 				end
 
 				return Enum.ContextActionResult.Sink
