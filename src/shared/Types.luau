@@ -3,6 +3,11 @@ local Matter = require(ReplicatedStorage.Matter)
 
 export type EntityId = number
 
+export type Transform = {
+	cframe: CFrame,
+	isStatic: boolean,
+}
+
 export type ModelComponent = {
 	instance: Model,
 	disabled: boolean,
@@ -26,6 +31,7 @@ export type BeltPath = {
 	minerConnected: EntityId?,
 }
 
+export type BeltNodeDirection = "top" | "right" | "left"
 export type BeltNodeComponent = {
 	beltPath: EntityId,
 	nodeIndex: number,
@@ -33,7 +39,7 @@ export type BeltNodeComponent = {
 	dirVector: Vector3,
 	cframe: CFrame,
 	index: number,
-	direction: "top" | "right" | "left",
+	direction: BeltNodeDirection,
 }
 
 export type PathPreview = {
