@@ -111,7 +111,9 @@ local function BeltPlacerSystem(world: Types.World)
 	local placer: Types.BeltPlacer = world:GetSingleton(Components.BeltPlacer)
 	local settings: Types.Settings = world:GetSingleton(Components.Settings)
 
-	local function spawnNodes(beltPathEntity: number, points: { Vector3 }): { Types.EntityId }
+	local function spawnNodes(beltPathEntity: number, points: { Vector3 }, startIndex: number?): { Types.EntityId }
+		local index = startIndex or 1
+
 		assert(#points >= 2, "Need at least 2 points to spawn belt nodes")
 
 		local nodes: { { pos: Vector3, index: number, direction: "top" | "right" | "left", dirVector: Vector3 } } = {}
@@ -128,9 +130,10 @@ local function BeltPlacerSystem(world: Types.World)
 					pos = points[i],
 					dirVector = if inDir then inDir else outDir,
 					direction = direction,
-					index = i,
+					index = index,
 				} :: Types.BeltNodeComponent
 			)
+			index += 1
 		end
 
 		local nodesIds: { Types.EntityId } = {}
@@ -196,7 +199,7 @@ local function BeltPlacerSystem(world: Types.World)
 			Components.BeltPath({
 				nodes = nodesIds,
 				distToInsertAtStart = length - 1,
-				speed = BeltSettings.BeltSpeeds.medium,
+				speed = BeltSettings.BeltSpeeds.slow,
 				prevBelt = lastBelt,
 				nextBelt = nil,
 			} :: Types.BeltPath),
@@ -216,7 +219,7 @@ local function BeltPlacerSystem(world: Types.World)
 
 		local beltPath: Types.BeltPath = world:get(placer.lastBelt, Components.BeltPath)
 
-		local newNodesIds = spawnNodes(beltId, pointsToInsert)
+		local newNodesIds = spawnNodes(beltId, pointsToInsert, #beltPath.nodes + 1)
 		-- TODO: reclacular as direções do último node antes da extensão e do primeiro node inserido
 
 		for _, nodeId in ipairs(newNodesIds) do
