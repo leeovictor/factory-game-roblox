@@ -1,4 +1,3 @@
-local EncodingService = game:GetService("EncodingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local OreDepletedRemoveSystem = require(script.Parent.OreDepletedRemoveSystem)
 local RemoveModelsSytem = require(script.Parent.RemoveModelsSytem)

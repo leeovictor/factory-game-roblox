@@ -1,6 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local BeltSettings = require(ReplicatedStorage.Shared.BeltSettings)
-local BeltItemsMovement = require(script.Parent.BeltItemsMovement)
 local CollisionGroups = require(ReplicatedStorage.Shared.CollisionGroups)
 local OreDepletedRemoveSystem = require(script.Parent.OreDepletedRemoveSystem)
 local Components = require(ReplicatedStorage.Shared.Components)
