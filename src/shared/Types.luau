@@ -10,7 +10,7 @@ export type Transform = {
 
 export type ModelComponent = {
 	instance: Model,
-	disabled: boolean,
+	disabled: boolean?,
 }
 
 export type BeltItemComponent = {
@@ -102,6 +102,57 @@ export type GridLines = {
 	center: Vector3,
 	cachedParts: { [number]: Instance }?,
 	enabled: boolean,
+}
+
+type ProductionFacilityState = "idle" | "producing" | "lack_material" | "product_overflow"
+
+export type ItemKey = string
+
+export type ItemSpec = {
+	key: ItemKey,
+	displayName: string,
+	description: string,
+	stackSize: number,
+	iconAssetId: string,
+}
+
+export type RecipeRequirement = {
+	itemSpec: ItemSpec,
+	amount: number,
+}
+
+export type RecipeOutput = {
+	itemSpec: ItemSpec,
+	amount: number,
+}
+
+export type RecipeSpec = {
+	name: string,
+	description: string,
+	requirements: { [ItemKey]: RecipeRequirement },
+	outputs: { [ItemKey]: RecipeOutput },
+	productionTime: number, -- in seconds
+	facilityType: ProductionFacilityType, -- the type of facility that can produce this recipe
+	canBeMadeInInventory: boolean,
+}
+
+export type Slot = {
+	quantity: number,
+}
+
+export type SlotMap = {
+	[ItemKey]: Slot,
+}
+
+export type ProductionFacilityType = "Smelter" | "Assembler"
+
+export type ProductionFacility = {
+	recipe: RecipeSpec?,
+	inputSlots: SlotMap,
+	outputSlots: SlotMap,
+	state: ProductionFacilityState,
+	progress: number,
+	facilityType: ProductionFacilityType,
 }
 
 export type MinerStates = "Mining" | "NodesDepleted" | "ProductOverflow"

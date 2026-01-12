@@ -1,156 +1,111 @@
+local EncodingService = game:GetService("EncodingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local OreDepletedRemoveSystem = require(script.Parent.OreDepletedRemoveSystem)
 local RemoveModelsSytem = require(script.Parent.RemoveModelsSytem)
-local matter = require(ReplicatedStorage.Matter)
 local Components = require(ReplicatedStorage.Shared.Components)
+local Enums = require(ReplicatedStorage.Shared.Enums)
+local ItemSpecs = require(ReplicatedStorage.Shared.ItemSpecs)
+local Types = require(ReplicatedStorage.Shared.Types)
 
-local function ProductionFacility(world)
-	for id, facility in world:query(Components.ProductionFacility) do
-		if facility.state == "idle" then
-			if facility.recipe ~= nil then
-				-- check for input components requirements
-				local metRequirements = true
-				for item, reqAmount in pairs(facility.recipe.requirements) do
-					assert(
-						facility.inputSlots[item],
-						"Input slot for item " .. item .. " not found in facility " .. tostring(id)
-					)
-					if facility.inputSlots[item].quantity < reqAmount then
-						metRequirements = false
-						break
-					end
-				end
+local function recipeRequirementMet(productionFacility: Types.ProductionFacility): boolean
+	assert(productionFacility.recipe ~= nil, "requirementMet called with nil recipe")
 
-				if not metRequirements then
-					world:insert(
-						id,
-						facility:patch({
-							state = "lack_material",
-						})
-					)
-					continue
-				end
+	for itemKey: Types.ItemKey, requirement: Types.RecipeRequirement in
+		pairs((productionFacility.recipe :: Types.RecipeSpec).requirements)
+	do
+		local slot: Types.Slot = productionFacility.inputSlots[itemKey]
+		if not slot then
+			error("Input slot not found for itemKey: " .. tostring(itemKey))
+		end
+		if not slot or slot.quantity < requirement.amount then
+			return false
+		end
+	end
 
-				-- requirements met, consume input components and start producing
-				local updatedInputSlots = {}
-				for item, slot in pairs(facility.inputSlots) do
-					local reqAmount = facility.recipe.requirements[item] or 0
-					updatedInputSlots[item] = {
-						quantity = slot.quantity - reqAmount,
-						capacity = slot.capacity,
-					}
-				end
-				world:insert(
-					id,
-					facility:patch({
-						state = "producing",
-						inputSlots = updatedInputSlots,
-						progress = 0,
-						startProductingTime = os.clock(),
-					})
-				)
+	return true
+end
+
+local function allOutputSlotsAvailable(productionFacility: Types.ProductionFacility): boolean
+	for itemKey: Types.ItemKey, slot: Types.Slot in pairs(productionFacility.outputSlots) do
+		local itemSpec: Types.ItemSpec = ItemSpecs.ByKey[itemKey]
+		if not itemKey then
+			error("ItemSpec not found for itemKey: " .. tostring(itemKey))
+		end
+
+		if slot.quantity == itemSpec.stackSize then
+			return false
+		end
+	end
+
+	return true
+end
+
+local function ProductionFacility(world: Types.World)
+	for _id, productionFacility: Types.ProductionFacility in world:query(Components.ProductionFacility) do
+		if productionFacility.state == Enums.ProductionFacilityState.Idle then
+			if productionFacility.recipe ~= nil then
+				productionFacility.state = Enums.ProductionFacilityState.Producing
+				productionFacility.progress = 0
+				continue
+			end
+		elseif productionFacility.state == Enums.ProductionFacilityState.LackMaterial then
+			if productionFacility.recipe == nil then
+				productionFacility.state = Enums.ProductionFacilityState.Idle
 				continue
 			end
 
-			continue
-		end
-
-		if facility.state == "lack_material" then
-			local metRequirements = true
-			for item, reqAmount in pairs(facility.recipe.requirements) do
-				if facility.inputSlots[item].quantity < reqAmount then
-					metRequirements = false
-					break
-				end
+			if recipeRequirementMet(productionFacility) then
+				productionFacility.state = Enums.ProductionFacilityState.Producing
+				continue
 			end
-
-			if not metRequirements then
+		elseif productionFacility.state == Enums.ProductionFacilityState.Producing then
+			if productionFacility.recipe == nil then
+				productionFacility.state = Enums.ProductionFacilityState.Idle
+				productionFacility.progress = 0
 				continue
 			end
 
-			-- requirements met, consume input components and start producing
-			local updatedInputSlots = {}
-			for item, slot in pairs(facility.inputSlots) do
-				local reqAmount = facility.recipe.requirements[item] or 0
-				updatedInputSlots[item] = {
-					quantity = slot.quantity - reqAmount,
-					capacity = slot.capacity,
-				}
+			if not recipeRequirementMet(productionFacility) then
+				productionFacility.state = Enums.ProductionFacilityState.LackMaterial
+				continue
 			end
-			world:insert(
-				id,
-				facility:patch({
-					state = "producing",
-					inputSlots = updatedInputSlots,
-					progress = 0,
-					startProductingTime = os.clock(),
-				})
-			)
-			continue
-		end
 
-		if facility.state == "producing" then
-			-- facility = facility:patch({
-			--     progress = facility.progress + facility.speed * matter.useDeltaTime(),
-			-- })
-
-			if os.clock() - facility.startProductingTime >= (facility.recipe.processingTime / facility.speed) then
-				local overshot = os.clock()
-					- facility.startProductingTime
-					- (facility.recipe.processingTime / facility.speed)
-				local updatedOutputSlots = facility.outputSlots
-				for item, amount in pairs(facility.recipe.outputs) do
-					updatedOutputSlots[item] = {
-						quantity = facility.outputSlots[item].quantity + amount,
-						capacity = facility.outputSlots[item].capacity,
-					}
-				end
-
-				facility = facility:patch({
-					outputSlots = updatedOutputSlots,
-				})
-
-				local metRequirements = true
-				for item, reqAmount in pairs(facility.recipe.requirements) do
-					if facility.inputSlots[item].quantity < reqAmount then
-						metRequirements = false
-						break
-					end
-				end
-
-				if not metRequirements then
-					facility = facility:patch({
-						state = "lack_material",
-						startProductingTime = matter.None,
-					})
-				else
-					-- requirements met, consume input components and start producing
-					local updatedInputSlots = {}
-					for item, slot in pairs(facility.inputSlots) do
-						local reqAmount = facility.recipe.requirements[item] or 0
-						updatedInputSlots[item] = {
-							quantity = slot.quantity - reqAmount,
-							capacity = slot.capacity,
-						}
-					end
-					world:insert(
-						id,
-						facility:patch({
-							inputSlots = updatedInputSlots,
-							startProductingTime = os.clock() - overshot,
-						})
-					)
-					continue
-				end
-
-				world:insert(id, facility)
+			if not allOutputSlotsAvailable(productionFacility) then
+				productionFacility.state = Enums.ProductionFacilityState.ProductOverflow
+				continue
 			end
-			continue
-		end
 
-		if facility.state == "product_overflow" then
-			print("TODO: handle product_overflow state for production facility ", id)
-			continue
+			local recipe = productionFacility.recipe :: Types.RecipeSpec
+			productionFacility.progress += world.FixedDeltaTime
+			if productionFacility.progress >= recipe.productionTime then
+				local overflow = productionFacility.progress - recipe.productionTime
+
+				-- Consume inputs
+				for itemKey: Types.ItemKey, requirement: Types.RecipeRequirement in pairs(recipe.requirements) do
+					local slot: Types.Slot = productionFacility.inputSlots[itemKey]
+					slot.quantity -= requirement.amount
+				end
+				-- Produce outputs
+				for itemKey: Types.ItemKey, output: Types.RecipeOutput in pairs(recipe.outputs) do
+					local slot: Types.Slot = productionFacility.outputSlots[itemKey]
+					slot.quantity += output.amount
+				end
+
+				productionFacility.progress = overflow
+			end
+		elseif productionFacility.state == Enums.ProductionFacilityState.ProductOverflow then
+			if productionFacility.recipe == nil then
+				productionFacility.state = Enums.ProductionFacilityState.Idle
+				productionFacility.progress = 0
+				continue
+			end
+
+			if allOutputSlotsAvailable(productionFacility) then
+				productionFacility.state = Enums.ProductionFacilityState.Producing
+				continue
+			end
+		else
+			error("Unknown production facility state: " .. tostring(productionFacility.state))
 		end
 	end
 end

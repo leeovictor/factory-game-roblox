@@ -1,6 +1,7 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local matter = require(ReplicatedStorage.Matter)
+local CollisionGroups = require(ReplicatedStorage.Shared.CollisionGroups)
 local Components = require(ReplicatedStorage.Shared.Components)
 local Events = require(ReplicatedStorage.Shared.Events)
 local Helpers = require(ReplicatedStorage.Shared.Helpers)
@@ -28,8 +29,8 @@ local function DeconstructSystem(world: Types.World)
 	MatterHooks.useContextAction("deconstruct:click", function(_actionName, inputState: Enum.UserInputState)
 		if inputState == Enum.UserInputState.Begin then
 			local mouse = game.Players.LocalPlayer:GetMouse()
-			local pos = Helpers.snapToGrid(mouse.Hit.Position, 2)
-			local res = workspace:Raycast(pos + Vector3.yAxis * 10, Vector3.yAxis * -20)
+			local ray = workspace.CurrentCamera:ScreenPointToRay(mouse.X, mouse.Y)
+			local res = workspace:Raycast(ray.Origin, ray.Direction * 5000)
 
 			if not res or not res.Instance then
 				return Enum.ContextActionResult.Sink
@@ -73,6 +74,12 @@ local function DeconstructSystem(world: Types.World)
 					belt.minerConnected = nil
 				end
 
+				world:despawn(entity)
+				return Enum.ContextActionResult.Sink
+			end
+
+			local facility = world:get(entity, Components.ProductionFacility)
+			if facility then -- delete the production facility
 				world:despawn(entity)
 				return Enum.ContextActionResult.Sink
 			end

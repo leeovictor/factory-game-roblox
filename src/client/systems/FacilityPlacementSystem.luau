@@ -1,10 +1,13 @@
+--!strict
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local matter = require(ReplicatedStorage.Matter)
 local CollisionGroups = require(ReplicatedStorage.Shared.CollisionGroups)
 local Components = require(ReplicatedStorage.Shared.Components)
+local Enums = require(ReplicatedStorage.Shared.Enums)
 local Events = require(ReplicatedStorage.Shared.Events)
 local Helpers = require(ReplicatedStorage.Shared.Helpers)
+local ItemSpecs = require(ReplicatedStorage.Shared.ItemSpecs)
 local MatterHooks = require(ReplicatedStorage.Shared.MatterHooks)
 local TableUtils = require(ReplicatedStorage.Shared.TableUtils)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -19,7 +22,7 @@ minerOreCheckOverlapParams.CollisionGroup = CollisionGroups.MinerOreNodeCheck
 
 local function validateFacilityPlacement(model: Model, facilityName: string)
 	if facilityName == "Assembler" or facilityName == "Smelter" then
-		local primaryPart = model.PrimaryPart
+		local primaryPart = model.PrimaryPart :: BasePart
 		local canPlace = #workspace:GetPartBoundsInBox(
 			primaryPart.CFrame,
 			primaryPart.Size,
@@ -31,7 +34,7 @@ local function validateFacilityPlacement(model: Model, facilityName: string)
 		}
 	elseif facilityName == "Miner" then
 		-- check if miner primary part is colliding with other objects
-		local primaryPart = model.PrimaryPart
+		local primaryPart = model.PrimaryPart :: BasePart
 		local primaryPartColliding = #workspace:GetPartBoundsInBox(
 			primaryPart.CFrame,
 			primaryPart.Size,
@@ -111,6 +114,32 @@ local function FacilityPlacementSystem(world: Types.World, _gameState)
 		end
 	end
 
+	local function spawnProductionFacility(facilityName: Types.ProductionFacilityType)
+		if ReplicatedStorage.Models.Facilities[facilityName] == nil then
+			error("Facility model not found: " .. facilityName)
+		end
+		local model = ReplicatedStorage.Models.Facilities[facilityName]:Clone()
+		Helpers.setCollisionGroupModelParts(model, CollisionGroups.Buildings)
+
+		world:spawn(
+			Components.ProductionFacility({
+				recipe = nil,
+				inputSlots = {},
+				outputSlots = {},
+				state = Enums.ProductionFacilityState.Idle,
+				progress = 0,
+				facilityType = facilityName :: Types.ProductionFacilityType,
+			} :: Types.ProductionFacility),
+			Components.Transform({
+				cframe = facilityPlacer.currentCFrame,
+				isStatic = true,
+			} :: Types.Transform),
+			Components.Model({
+				instance = model,
+			} :: Types.ModelComponent)
+		)
+	end
+
 	for _, event in matter.useEvent(Events, "ToolUnequiped") do
 		if event.type == "FacilityPlacer" then
 			facilityPlacer.enabled = false
@@ -155,6 +184,8 @@ local function FacilityPlacementSystem(world: Types.World, _gameState)
 		elseif inputState == Enum.UserInputState.End then
 			facilityPlacer.rotateActionActive = false
 		end
+
+		return Enum.ContextActionResult.Sink
 	end, { inputTypes = { Enum.KeyCode.R } })
 
 	if facilityPlacer.canDisableSnapping then
@@ -166,7 +197,9 @@ local function FacilityPlacementSystem(world: Types.World, _gameState)
 				elseif inputState == Enum.UserInputState.End then
 					facilityPlacer.snapDisabled = false
 				end
+
 				placementPointer.snapToGrid = not facilityPlacer.snapDisabled
+				return Enum.ContextActionResult.Sink
 			end,
 			{ inputTypes = { Enum.KeyCode.LeftShift } }
 		)
@@ -176,8 +209,12 @@ local function FacilityPlacementSystem(world: Types.World, _gameState)
 		if inputState == Enum.UserInputState.End and facilityPlacer.validationResult.canPlace then
 			if facilityPlacer.facilityName == "Miner" then
 				spawnMiner()
+			else
+				spawnProductionFacility(facilityPlacer.facilityName :: Types.ProductionFacilityType)
 			end
+			return Enum.ContextActionResult.Sink
 		end
+		return Enum.ContextActionResult.Sink
 	end, { inputTypes = { Enum.UserInputType.MouseButton1 } })
 
 	if facilityPlacer.hologramModel then
