@@ -294,7 +294,7 @@ local function BeltPlacerSystem(world: Types.World)
 		placer.endPosition = nil
 	else
 		MatterHooks.useContextAction("beltplacer:select_point", function(_action, inputState: Enum.UserInputState)
-			if inputState == Enum.UserInputState.End then
+			if inputState == Enum.UserInputState.Begin then
 				if not placer.startPosition then
 					local pos = Helpers.snapToGrid(mouse.Hit.Position, settings.gridSize)
 					local minerId = findMinerAtPosition()
