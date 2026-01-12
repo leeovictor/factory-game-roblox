@@ -2,6 +2,7 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CollisionGroups = require(ReplicatedStorage.Shared.CollisionGroups)
 local Components = require(ReplicatedStorage.Shared.Components)
+local Types = require(ReplicatedStorage.Shared.Types)
 local tag = "OrePatchGenMarker"
 
 local point = Instance.new("Part")
@@ -123,7 +124,7 @@ local function poissonDiskSampling(radius, k, startPoint, maxPoints)
 	return points
 end
 
-function generateOrePatch(center: Vector3, nodesCount: number, world)
+function generateOrePatch(world: Types.World, center: Vector3, nodesCount: number, oreType: string)
 	local points = poissonDiskSampling(3, 100, { x = 100, y = 100 }, nodesCount - 1)
 	for _, p in points do
 		p.x = p.x - (width / 2)
@@ -141,7 +142,7 @@ function generateOrePatch(center: Vector3, nodesCount: number, world)
 
 		world:spawn(
 			Components.OreNode({
-				oreType = "Iron",
+				oreType = oreType,
 				quantity = 1000,
 			}),
 			Components.Model({
@@ -159,7 +160,12 @@ function OrePathchGen.generateAll(world)
 	for _, marker in markers do
 		local orePatchGen: Part = marker
 		orePatchGen.Transparency = 0.8
-		generateOrePatch(orePatchGen.Position, (orePatchGen:GetAttribute("nodesCount") :: number) or 6, world)
+		generateOrePatch(
+			world,
+			orePatchGen.Position,
+			(orePatchGen:GetAttribute("nodesCount") :: number) or 6,
+			orePatchGen:GetAttribute("oreType") :: string
+		)
 	end
 end
 

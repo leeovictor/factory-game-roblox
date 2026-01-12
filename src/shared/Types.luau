@@ -73,6 +73,24 @@ export type PlacementPointer = {
 	smooth: boolean,
 }
 
+export type SorterState = "waiting_for_cargo" | "transporting" | "returning"
+export type SorterSpeed = number
+export type SorterConnectionEntityType = "belt" | "facility"
+
+export type SorterConnection = {
+	entityId: EntityId,
+	entityType: SorterConnectionEntityType,
+}
+
+export type Sorter = {
+	inputCon: SorterConnection?,
+	outputCon: SorterConnection?,
+	currentItem: ItemKey?,
+	state: SorterState,
+	progress: number,
+	speed: SorterSpeed,
+}
+
 export type Settings = {
 	gridSize: number,
 }
@@ -165,6 +183,7 @@ export type Miner = {
 	startMiningTime: number,
 	state: MinerStates,
 	outputBelt: EntityId?,
+	oreType: ItemKey,
 }
 
 export type Storage = {

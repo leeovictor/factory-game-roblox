@@ -50,4 +50,6 @@ return {
 	GridLines = Matter.component("GridLines"),
 
 	BeltNode = Matter.component("BeltNode"),
+
+	Sorter = Matter.component("Sorter"),
 }

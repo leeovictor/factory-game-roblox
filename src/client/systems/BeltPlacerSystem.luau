@@ -199,7 +199,7 @@ local function BeltPlacerSystem(world: Types.World)
 			Components.BeltPath({
 				nodes = nodesIds,
 				distToInsertAtStart = length - 1,
-				speed = BeltSettings.BeltSpeeds.slow,
+				speed = BeltSettings.BeltSpeeds.Medium,
 				prevBelt = lastBelt,
 				nextBelt = nil,
 			} :: Types.BeltPath),

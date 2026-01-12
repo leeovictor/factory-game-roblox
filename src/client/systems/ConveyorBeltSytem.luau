@@ -32,12 +32,11 @@ local function ConveyorBeltSystem(world: Types.World)
 			return true
 		end
 
-		-- REVIEW: provavelmente podemos usar uma pesquisa binaria aqui... ou quem sabe usar um indice de posicao para cada item na esteira?
 		local index
 		for i = 1, #beltItems.items do
 			local itemDist = beltItems.items[i].pos
 
-			if itemDist < itemPosInsertion - BeltSettings.ItemOcupancy / 2 then
+			if itemDist < itemPosInsertion - BeltSettings.ItemOcupancy then
 				index = i + 1
 				continue
 			end
@@ -50,10 +49,7 @@ local function ConveyorBeltSystem(world: Types.World)
 			-- usando então o overflowSpace para ajustar as posições dos outros items
 			-- é importante garantir que o item só seja adicionado se houver espaço suficiente em todo a esteira, o que significa que é necessário
 			-- calcular os gaps dos items anteriores pra determinar se é possível comprimir
-			if
-				itemDist >= itemPosInsertion - BeltSettings.ItemOcupancy / 2 - 1
-				and itemDist <= itemPosInsertion + BeltSettings.ItemOcupancy / 2
-			then
+			if itemDist >= itemPosInsertion - BeltSettings.ItemOcupancy and itemDist <= itemPosInsertion + 1 then
 				return false
 			end
 

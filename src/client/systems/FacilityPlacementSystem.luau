@@ -80,6 +80,8 @@ local function FacilityPlacementSystem(world: Types.World, _gameState)
 			end
 		end
 
+		local oreType = world:get(oreEntities[1], Components.OreNode).oreType
+
 		local payload = {
 			cframe = facilityPlacer.currentCFrame :: CFrame,
 			oreEntities = oreEntities,
@@ -92,7 +94,8 @@ local function FacilityPlacementSystem(world: Types.World, _gameState)
 				speedPerNode = 30,
 				startMiningTime = os.clock(),
 				state = "Mining",
-			}),
+				oreType = oreType,
+			} :: Types.Miner),
 			Components.Transform({
 				cframe = payload.cframe,
 				isStatic = true,

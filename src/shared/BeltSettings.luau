@@ -2,9 +2,9 @@ return {
 	BeltSubdiv = 40,
 	ItemOcupancy = 40,
 	BeltSpeeds = {
-		superSlow = 1, -- ONLY FOR TESTING
-		slow = 4,
-		medium = 8,
-		fast = 20,
+		SuperSlow = 1, -- ONLY FOR TESTING
+		Slow = 4,
+		Medium = 8,
+		Fast = 20,
 	},
 }

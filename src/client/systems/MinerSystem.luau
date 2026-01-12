@@ -20,35 +20,6 @@ local function MinerSystem(world)
 		)
 	end
 
-	-- 1. check for available ore nodes
-	-- how to choose which ore node to mine from?
-	-- option 1: random: not predictable but simple
-	-- option 2: selected a ore node index and advance to next index each time: predictable and fair distribution among ore nodes
-	-- validate if a ore node is available and has quantity > 0, update the oreNodes list id necessary (removing depleted nodes)
-
-	-- a. if no ore nodes available then
-	-- i. update miner state to NodesDepleted
-	-- ii. remove Mining component
-	-- iii. return
-	-- 2. extract ore from ore node and commit changes to world soo other miners can see the updated quantity
-	-- 3. add ore to miner storage
-	-- a. after adding ore to storage check if storage is full
-	-- i. if full then update miner state to ProductOverflow and remove Mining component
-	-- ii. else restart mining process by updating startMiningTime
-
-	-- considera que o oreNodeIndex é valido e que o ore node tem minério disponível, necessário determinar antes qual index usar
-
-	-- Plano para estrutura com threads
-	-- como distribuir a atualização dos miner entre aas threads?
-	-- cada thread processa uma parte dos miners (preciso então saber quantos miners existem no total e dividir igualmente entre as threads)
-	-- cada thread itera sobre sua parte dos miners e processa o mining logic
-	-- quando uma thread termina, ela sinaliza que terminou
-	-- quantos todas as threads terminarem, o update do sistema de miners está completo para esse frame
-
-	-- tenho que ter acesso ao world compartilhado entre as threads? as thread precisam ler o estado do world para processar os miners
-	-- e também precisam escrever as mudanças no world (quantidade de minério nos ore nodes, além das alterações no miner e storage)
-	-- como garantir que as threads não vão causar condições de corrida ao acessar o world?
-
 	for id, miner: Types.Miner, storage: Types.Storage in world:query(Components.Miner, Components.Storage) do
 		if miner.outputBelt ~= nil and storage.currentAmount > 0 then
 			local beltItems: Types.BeltItemComponent = world:get(miner.outputBelt, Components.BeltItems)
@@ -64,8 +35,8 @@ local function MinerSystem(world)
 					beltItems.items,
 					{
 						pos = beltLength,
-						item = "iron_ore",
-						mesh = Helpers.createItemMesh("iron_ore"),
+						item = miner.oreType,
+						mesh = Helpers.createItemMesh(miner.oreType),
 					} :: Types.BeltItem
 				)
 				storage.currentAmount -= 1
