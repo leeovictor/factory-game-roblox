@@ -91,6 +91,12 @@ export type Sorter = {
 	speed: SorterSpeed,
 }
 
+export type SorterModel = {
+	inputPos: Vector3,
+	outputPos: Vector3,
+	instances: { input: Model, output: Model }?,
+}
+
 export type Settings = {
 	gridSize: number,
 }

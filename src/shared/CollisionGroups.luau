@@ -5,4 +5,5 @@ return {
 	BuildingCollisionCheck = "BuildingCollisionCheck",
 	MinerOreNodeCheck = "MinerOreNodeCheck",
 	SorterValidConnectionCheck = "SorterValidConnectionCheck",
+	Sorters = "Sorters",
 }

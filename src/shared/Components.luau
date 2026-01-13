@@ -52,4 +52,5 @@ return {
 	BeltNode = Matter.component("BeltNode"),
 
 	Sorter = Matter.component("Sorter"),
+	SorterModel = Matter.component("SorterModel"),
 }

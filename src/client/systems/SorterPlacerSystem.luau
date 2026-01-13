@@ -3,7 +3,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Events = require(ReplicatedStorage.Shared.Events)
 local Matter = require(ReplicatedStorage.Matter)
-local component = require(ReplicatedStorage.Matter.component)
 local CollisionGroups = require(ReplicatedStorage.Shared.CollisionGroups)
 local Components = require(ReplicatedStorage.Shared.Components)
 local Enums = require(ReplicatedStorage.Shared.Enums)
@@ -13,7 +12,11 @@ local MatterHooks = require(ReplicatedStorage.Shared.MatterHooks)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local enabled = false
+local startPos: Vector3?
+local endPos: Vector3?
 local startConnection: Types.SorterConnection?
+
+local mouse = Players.LocalPlayer:GetMouse()
 
 local function SorterPlacerSystem(world: Types.World, gameState)
 	for _, event in Matter.useEvent(Events, "ToolUnequiped") do
@@ -30,7 +33,6 @@ local function SorterPlacerSystem(world: Types.World, gameState)
 	end
 
 	local function findConnectionEntityInMouseHit(): Types.SorterConnection?
-		local mouse = Players.LocalPlayer:GetMouse()
 		local ray = workspace.CurrentCamera:ScreenPointToRay(mouse.X, mouse.Y)
 		local raycastParams = RaycastParams.new()
 		raycastParams.CollisionGroup = CollisionGroups.SorterValidConnectionCheck
@@ -75,18 +77,28 @@ local function SorterPlacerSystem(world: Types.World, gameState)
 				end
 
 				if startConnection == nil then
+					startPos = Helpers.snapToGrid(mouse.Hit, 2)
 					startConnection = sorterConnection
 					print("Start connection selected: ", startConnection)
 				else
-					world:spawn(Components.Sorter({
-						inputCon = startConnection,
-						outputCon = sorterConnection,
-						currentItem = nil,
-						progress = 0,
-						speed = Enums.SorterSpeeds.Normal,
-						state = Enums.SorterState.WaitingForCargo,
-					} :: Types.Sorter))
+					endPos = Helpers.snapToGrid(mouse.Hit, 2)
+					world:spawn(
+						Components.Sorter({
+							inputCon = startConnection,
+							outputCon = sorterConnection,
+							currentItem = nil,
+							progress = 0,
+							speed = Enums.SorterSpeeds.Normal,
+							state = Enums.SorterState.WaitingForCargo,
+						} :: Types.Sorter),
+						Components.SorterModel({
+							inputPos = startPos :: Vector3,
+							outputPos = endPos :: Vector3,
+						} :: Types.SorterModel)
+					)
 
+					startPos = nil
+					endPos = nil
 					startConnection = nil
 				end
 			end
@@ -100,22 +112,6 @@ local function SorterPlacerSystem(world: Types.World, gameState)
 			end
 			return Enum.ContextActionResult.Sink
 		end, { inputTypes = { Enum.UserInputType.MouseButton2 } })
-	end
-
-	if gameState.debug then
-		for _id, sorter: Types.Sorter in world:query(Components.Sorter) do
-			local inputModel: Types.ModelComponent =
-				world:get((sorter.inputCon :: Types.SorterConnection).entityId, Components.Model)
-			local outputModel: Types.ModelComponent =
-				world:get((sorter.outputCon :: Types.SorterConnection).entityId, Components.Model)
-
-			local startPos = inputModel.instance:GetPivot()
-			local endPos = outputModel.instance:GetPivot()
-
-			Gizmos.drawPoint(startPos.Position)
-			Gizmos.drawPoint(endPos.Position)
-			Gizmos.drawLine(startPos.Position, endPos.Position)
-		end
 	end
 end
 
