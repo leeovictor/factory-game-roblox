@@ -138,7 +138,8 @@ local function FacilityPlacementSystem(world: Types.World, _gameState)
 			} :: Types.Transform),
 			Components.Model({
 				instance = model,
-			} :: Types.ModelComponent)
+			} :: Types.ModelComponent),
+			Components.SortersConnected({ sorters = {} })
 		)
 	end
 

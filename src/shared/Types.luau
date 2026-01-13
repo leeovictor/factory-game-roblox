@@ -168,6 +168,10 @@ export type SlotMap = {
 	[ItemKey]: Slot,
 }
 
+export type SortersConnected = {
+	sorters: { [string]: boolean },
+}
+
 export type ProductionFacilityType = "Smelter" | "Assembler"
 
 export type ProductionFacility = {

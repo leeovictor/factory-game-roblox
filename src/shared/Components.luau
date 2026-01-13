@@ -53,4 +53,5 @@ return {
 
 	Sorter = Matter.component("Sorter"),
 	SorterModel = Matter.component("SorterModel"),
+	SortersConnected = Matter.component("SortersConnected"),
 }

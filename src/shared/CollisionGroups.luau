@@ -6,4 +6,5 @@ return {
 	MinerOreNodeCheck = "MinerOreNodeCheck",
 	SorterValidConnectionCheck = "SorterValidConnectionCheck",
 	Sorters = "Sorters",
+	DeconstructCollisionCheck = "DeconstructCollisionCheck",
 }

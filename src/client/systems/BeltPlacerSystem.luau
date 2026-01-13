@@ -161,7 +161,8 @@ local function BeltPlacerSystem(world: Types.World)
 				Components.Transform({
 					cframe = CFrame.new(node.pos, node.pos + node.dirVector),
 					isStatic = true,
-				} :: Types.Transform)
+				} :: Types.Transform),
+				Components.SortersConnected({ sorters = {} })
 			)
 			world:commitCommands()
 			table.insert(nodesIds, id)
@@ -199,9 +200,7 @@ local function BeltPlacerSystem(world: Types.World)
 			Components.BeltPath({
 				nodes = nodesIds,
 				distToInsertAtStart = length - 1,
-				speed = BeltSettings.BeltSpeeds.Medium,
-				prevBelt = lastBelt,
-				nextBelt = nil,
+				speed = BeltSettings.BeltSpeeds.Slow,
 			} :: Types.BeltPath),
 			beltItemsComp
 		)

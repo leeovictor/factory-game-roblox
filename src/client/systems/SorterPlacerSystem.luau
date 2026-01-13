@@ -67,6 +67,13 @@ local function SorterPlacerSystem(world: Types.World, gameState)
 		end
 	end
 
+	local function connectSorterTo(entityId: Types.EntityId, sorterId: Types.EntityId)
+		print("Connecting sorter ", sorterId, " to entity ", entityId)
+
+		local sortersConnected: Types.SortersConnected = world:get(entityId, Components.SortersConnected)
+		sortersConnected.sorters[`{sorterId}`] = true
+	end
+
 	if enabled then
 		MatterHooks.useContextAction("sorter_placer:select_point", function(_actionName, inputState, _inputObject)
 			if inputState == Enum.UserInputState.Begin then
@@ -82,13 +89,20 @@ local function SorterPlacerSystem(world: Types.World, gameState)
 					print("Start connection selected: ", startConnection)
 				else
 					endPos = Helpers.snapToGrid(mouse.Hit, 2)
-					world:spawn(
+
+					local sorterId = world:spawn()
+
+					connectSorterTo(startConnection.entityId, sorterId)
+					connectSorterTo(sorterConnection.entityId, sorterId)
+
+					world:insert(
+						sorterId,
 						Components.Sorter({
 							inputCon = startConnection,
 							outputCon = sorterConnection,
 							currentItem = nil,
 							progress = 0,
-							speed = Enums.SorterSpeeds.Normal,
+							speed = Enums.SorterSpeeds.Slow,
 							state = Enums.SorterState.WaitingForCargo,
 						} :: Types.Sorter),
 						Components.SorterModel({
