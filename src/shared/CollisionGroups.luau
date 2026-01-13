@@ -7,4 +7,5 @@ return {
 	SorterValidConnectionCheck = "SorterValidConnectionCheck",
 	Sorters = "Sorters",
 	DeconstructCollisionCheck = "DeconstructCollisionCheck",
+	ViewEntityDetailsCheck = "ViewEntityDetailsCheck",
 }

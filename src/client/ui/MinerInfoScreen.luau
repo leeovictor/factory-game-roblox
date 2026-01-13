@@ -20,6 +20,7 @@ type MinerInfoUIControllerData = {
 	screen: any,
 	world: Types.World,
 	entityId: number?,
+	enabled: boolean,
 }
 
 export type MinerInfoUIController = typeof(setmetatable({} :: MinerInfoUIControllerData, MinerInfoUIController))
@@ -29,6 +30,7 @@ function MinerInfoUIController.new(world: Types.World): MinerInfoUIController
 	self.screen = Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("MinerInfoScreen")
 	self.world = world
 	self.entityId = nil
+	self.enabled = false
 
 	self.screen.Container.CloseButtonContainer.CloseButton.MouseButton1Click:Connect(function()
 		self:OnCloseButtonClick()
@@ -36,8 +38,12 @@ function MinerInfoUIController.new(world: Types.World): MinerInfoUIController
 	return self
 end
 
-function MinerInfoUIController.OnCloseButtonClick(self: MinerInfoUIController)
-	Events.CloseMinerInfoEvent:Fire(self.entityId)
+function MinerInfoUIController:SetEntityId(entityId: Types.EntityId)
+	self.entityId = entityId
+end
+
+function MinerInfoUIController.OnCloseButtonClick()
+	Events.CloseMinerInfoEvent:Fire()
 end
 
 function MinerInfoUIController.UpdateMinerInfo(self: MinerInfoUIController, minerInfo: MinerInfo)
@@ -50,14 +56,14 @@ function MinerInfoUIController.UpdateMinerInfo(self: MinerInfoUIController, mine
 	self.screen.Container.ProgressBar.Bar.Size = UDim2.fromScale(minerInfo.miningProgress, 1)
 end
 
-function MinerInfoUIController.Show(self: MinerInfoUIController, entityId: number)
-	self.entityId = entityId
-	self.screen.Enabled = true
+function MinerInfoUIController.Show(self: MinerInfoUIController)
+	self.enabled = true
+	self.screen.Enabled = self.enabled
 end
 
 function MinerInfoUIController.Hide(self: MinerInfoUIController)
-	self.entityId = nil
-	self.screen.Enabled = false
+	self.enabled = false
+	self.screen.Enabled = self.enabled
 end
 
 return MinerInfoUIController
