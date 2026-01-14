@@ -31,7 +31,7 @@ local function allOutputSlotsAvailable(productionFacility: Types.ProductionFacil
 			error("ItemSpec not found for itemKey: " .. tostring(itemKey))
 		end
 
-		if slot.quantity == itemSpec.stackSize then
+		if slot.quantity >= itemSpec.stackSize then
 			return false
 		end
 	end
