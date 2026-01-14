@@ -2,9 +2,10 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
+local FacilityDetailsScreen = require(StarterPlayer.StarterPlayerScripts.Client.ui.FacilityDetailsScreen)
 local MinerInfoScreen = require(StarterPlayer.StarterPlayerScripts.Client.ui.MinerInfoScreen)
-local UIEvents = require(StarterPlayer.StarterPlayerScripts.Client.ui.UIEvents)
-local UITypes = require(StarterPlayer.StarterPlayerScripts.Client.ui.UITypes)
+local UIEvents = require(ReplicatedStorage.Shared.UIEvents)
+local UITypes = require(ReplicatedStorage.Shared.UITypes)
 local matter = require(ReplicatedStorage.Matter)
 local CollisionGroups = require(ReplicatedStorage.Shared.CollisionGroups)
 local Components = require(ReplicatedStorage.Shared.Components)
@@ -18,7 +19,12 @@ local mouse = Players.LocalPlayer:GetMouse()
 local ctrlHold = false
 local function UISystem(
 	world: Types.World,
-	gameState: { screens: { MinerInfoScreen: MinerInfoScreen.MinerInfoUIController } }
+	gameState: {
+		screens: {
+			MinerInfoScreen: MinerInfoScreen.MinerInfoUIController,
+			FacilityDetailsScreen: FacilityDetailsScreen.FacilityDetailsScreen,
+		},
+	}
 )
 	local function initializeSlotsForRecipe(facility: Types.ProductionFacility, recipe: Types.RecipeSpec)
 		facility.inputSlots = {}
@@ -58,9 +64,14 @@ local function UISystem(
 					if not gameState.screens.MinerInfoScreen.enabled then
 						gameState.screens.MinerInfoScreen:Show()
 					end
+					return
 				end
 
-				-- TODO: handle other entity types (e.g., ProductionFacility)
+				local facility: Types.ProductionFacility? = world:get(entityId, Components.ProductionFacility)
+				if facility ~= nil then
+					gameState.screens.FacilityDetailsScreen:Show(entityId, facility)
+					return
+				end
 			end
 		end
 		return Enum.ContextActionResult.Sink
@@ -84,7 +95,6 @@ local function UISystem(
 	)
 
 	for _, event: UITypes.SelectRecipeEvent in matter.useEvent(UIEvents, "SelectRecipeEvent") do
-		print("SelectRecipeEvent received for entity:", event.entityId)
 		local facility: Types.ProductionFacility = world:get(event.entityId, Components.ProductionFacility)
 		facility.recipe = event.recipe
 		initializeSlotsForRecipe(facility, event.recipe)

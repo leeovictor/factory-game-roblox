@@ -11,6 +11,7 @@ local FixedUpdate = require(ReplicatedStorage.Shared.FixedUpdate)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local orePatchGenerator = require(script.OrePatchGen)
+local FacilityDetailsScreen = require(script.ui.FacilityDetailsScreen)
 local MinerInfoScreen = require(script.ui.MinerInfoScreen)
 
 function extendWorld(world): Types.World
@@ -34,6 +35,8 @@ local gameState = {
 local world = extendWorld(Matter.World.new())
 
 gameState.screens.MinerInfoScreen = MinerInfoScreen.new(world)
+gameState.screens.FacilityDetailsScreen =
+	FacilityDetailsScreen.new(Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("FacilityDetailsScreen"))
 local debugger = Matter.Debugger.new(Plasma)
 local widgets = debugger:getWidgets()
 local loop = Matter.Loop.new(world, gameState, widgets)
