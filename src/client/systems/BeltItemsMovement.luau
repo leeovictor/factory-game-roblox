@@ -38,6 +38,7 @@ local function BeltItemsMovementSystem(world: Types.World, gameState)
 			local progress = nodeProgress / BeltSettings.BeltSubdiv -- 0 to 1
 
 			local itemPos = nil
+			local dirVector = (nodeEndPoint - nodeStartPoint).Unit
 			if node.direction == "top" then
 				itemPos = nodeStartPoint:Lerp(nodeEndPoint, progress)
 			elseif node.direction == "left" then
@@ -56,7 +57,10 @@ local function BeltItemsMovementSystem(world: Types.World, gameState)
 			end
 
 			table.insert(meshes, item.mesh)
-			table.insert(cframes, CFrame.new(itemPos + Vector3.new(0, 0.8, 0)))
+			table.insert(
+				cframes,
+				CFrame.new(itemPos + Vector3.new(0, 0.8, 0), itemPos + Vector3.new(0, 0.8, 0) + dirVector)
+			)
 		end
 	end
 

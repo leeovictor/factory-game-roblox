@@ -31,6 +31,10 @@ export type BeltPath = {
 	minerConnected: EntityId?,
 }
 
+export type BeltsConnected = {
+	belts: { [string]: boolean },
+}
+
 export type BeltNodeDirection = "top" | "right" | "left"
 export type BeltNodeComponent = {
 	beltPath: EntityId,

@@ -107,6 +107,15 @@ local function findDirectionFromVectors(v1: Vector3, v2: Vector3): Types.BeltNod
 	return "top"
 end
 
+local function calculateNodeDir(points: { Vector3 }, index: number): (Vector3, Types.BeltNodeDirection)
+	local inDir = if index == 1 then nil else (points[index] - points[index - 1]).Unit
+	local outDir = if index == #points then nil else (points[index + 1] - points[index]).Unit
+
+	local direction = if inDir and outDir then findDirectionFromVectors(inDir, outDir) else "top"
+	local dirVector = (if inDir then inDir else outDir) :: Vector3
+	return dirVector, direction :: Types.BeltNodeDirection
+end
+
 local function BeltPlacerSystem(world: Types.World)
 	local placer: Types.BeltPlacer = world:GetSingleton(Components.BeltPlacer)
 	local settings: Types.Settings = world:GetSingleton(Components.Settings)
@@ -119,16 +128,12 @@ local function BeltPlacerSystem(world: Types.World)
 		local nodes: { { pos: Vector3, index: number, direction: "top" | "right" | "left", dirVector: Vector3 } } = {}
 
 		for i = 1, #points do
-			local inDir = if i == 1 then nil else (points[i] - points[i - 1]).Unit
-			local outDir = if i == #points then nil else (points[i + 1] - points[i]).Unit
-
-			local direction = if inDir and outDir then findDirectionFromVectors(inDir, outDir) else "top"
-
+			local dirVector, direction = calculateNodeDir(points, i)
 			table.insert(
 				nodes,
 				{
 					pos = points[i],
-					dirVector = if inDir then inDir else outDir,
+					dirVector = dirVector,
 					direction = direction,
 					index = index,
 				} :: Types.BeltNodeComponent
@@ -162,7 +167,8 @@ local function BeltPlacerSystem(world: Types.World)
 					cframe = CFrame.new(node.pos, node.pos + node.dirVector),
 					isStatic = true,
 				} :: Types.Transform),
-				Components.SortersConnected({ sorters = {} })
+				Components.SortersConnected({ sorters = {} } :: Types.SortersConnected),
+				Components.BeltsConnected({ belts = {} } :: Types.BeltsConnected)
 			)
 			world:commitCommands()
 			table.insert(nodesIds, id)
@@ -209,6 +215,21 @@ local function BeltPlacerSystem(world: Types.World)
 		return beltId, nodesIds
 	end
 
+	local function getBeltPoints(belt: Types.BeltPath): { Vector3 }
+		local points: { Vector3 } = {}
+		for _, nodeId in ipairs(belt.nodes) do
+			local node: Types.BeltNodeComponent = world:get(nodeId, Components.BeltNode)
+			table.insert(points, node.pos)
+		end
+		return points
+	end
+
+	local function updateNodeDirections(node: Types.BeltNodeComponent, points: { Vector3 }, index: number)
+		local dirVector, direction = calculateNodeDir(points, index)
+		node.dirVector = dirVector
+		node.direction = direction :: Types.BeltNodeDirection
+	end
+
 	local function extendBelt(beltId: Types.EntityId, pointsToInsert: { Vector3 })
 		-- TODO: permitir adicionar no minimo 1 node ao invez de 2
 		if #pointsToInsert < 3 then
@@ -217,9 +238,15 @@ local function BeltPlacerSystem(world: Types.World)
 		end
 
 		local beltPath: Types.BeltPath = world:get(placer.lastBelt, Components.BeltPath)
+		local currentBeltPoints = getBeltPoints(beltPath)
+		local mergedBeltPoints = TableUtils.Merge(currentBeltPoints, pointsToInsert)
 
 		local newNodesIds = spawnNodes(beltId, pointsToInsert, #beltPath.nodes + 1)
-		-- TODO: reclacular as direções do último node antes da extensão e do primeiro node inserido
+
+		-- FIX: ainda está com problemas no caso de curvas consecutivas (ex.: um node left, outro node left seguido)
+		local lastNodeId = beltPath.nodes[#beltPath.nodes]
+		local lastNode: Types.BeltNodeComponent = world:get(lastNodeId, Components.BeltNode)
+		updateNodeDirections(lastNode, mergedBeltPoints, #beltPath.nodes)
 
 		for _, nodeId in ipairs(newNodesIds) do
 			table.insert(beltPath.nodes, nodeId)
@@ -322,7 +349,8 @@ local function BeltPlacerSystem(world: Types.World)
 
 					extendBelt(placer.lastBelt, pointsToInsert)
 				else
-					placer.lastBelt = spawnBelt(points, placer.lastBelt)
+					local pointsToInsert = if nodeAtEnd ~= nil then TableUtils.Slice(points, 1, #points - 1) else points
+					placer.lastBelt = spawnBelt(pointsToInsert, placer.lastBelt)
 				end
 
 				placer.startPosition = points[#points]
@@ -336,6 +364,9 @@ local function BeltPlacerSystem(world: Types.World)
 				end
 
 				if nodeAtEnd ~= nil then
+					local beltsConnected: Types.BeltsConnected = world:get(nodeAtEnd, Components.BeltsConnected)
+					beltsConnected.belts[`{placer.lastBelt}`] = true
+
 					local beltPath: Types.BeltPath = world:get(placer.lastBelt, Components.BeltPath)
 					beltPath.beltNodeOutput = nodeAtEnd
 					placer.startPosition = nil

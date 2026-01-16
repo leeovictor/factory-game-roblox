@@ -42,6 +42,26 @@ local function DeconstructSystem(world: Types.World)
 		end
 	end
 
+	local function disconnectBeltsConnected(nodeId: Types.EntityId)
+		local beltsConnected: Types.BeltsConnected = world:get(nodeId, Components.BeltsConnected)
+		if beltsConnected == nil then
+			return
+		end
+
+		for beltId, value in pairs(beltsConnected.belts) do
+			if not value then
+				continue
+			end
+			local beltPath: Types.BeltPath = world:get(tonumber(beltId) :: Types.EntityId, Components.BeltPath)
+			beltPath.beltNodeOutput = nil
+		end
+	end
+
+	local function removeBeltConnection(connectedNodeId: Types.EntityId, beltId: Types.EntityId)
+		local beltsConnected: Types.BeltsConnected = world:get(connectedNodeId, Components.BeltsConnected)
+		beltsConnected.belts[`{beltId}`] = nil
+	end
+
 	for _, event in matter.useEvent(Events, "ToolUnequiped") do
 		if event.type == "Deconstruct" then
 			enabled = false
@@ -88,6 +108,7 @@ local function DeconstructSystem(world: Types.World)
 				end
 				for _, nodeId in ipairs(beltPath.nodes) do
 					despawnConnectedSorters(nodeId)
+					disconnectBeltsConnected(nodeId)
 					world:despawn(nodeId)
 				end
 
@@ -95,6 +116,10 @@ local function DeconstructSystem(world: Types.World)
 				if minerConnected then
 					local miner: Types.Miner = world:get(minerConnected, Components.Miner)
 					miner.outputBelt = nil
+				end
+
+				if beltPath.beltNodeOutput ~= nil then
+					removeBeltConnection(beltPath.beltNodeOutput, beltNode.beltPath)
 				end
 
 				world:despawn(beltNode.beltPath)

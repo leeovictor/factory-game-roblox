@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ProductionFacilitySystem = require(script.Parent.ProductionFacilitySystem)
 local BeltSettings = require(ReplicatedStorage.Shared.BeltSettings)
 local Components = require(ReplicatedStorage.Shared.Components)
 local Enums = require(ReplicatedStorage.Shared.Enums)
@@ -195,4 +196,5 @@ end
 return {
 	system = SorterUpdateSystem,
 	event = "FixedUpdate",
+	after = { ProductionFacilitySystem },
 }

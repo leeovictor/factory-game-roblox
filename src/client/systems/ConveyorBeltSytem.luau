@@ -4,6 +4,7 @@ local Components = require(ReplicatedStorage.Shared.Components)
 local Helpers = require(ReplicatedStorage.Shared.Helpers)
 local Types = require(ReplicatedStorage.Shared.Types)
 local MinerSystem = require(script.Parent.MinerSystem)
+local SorterUpdateSystem = require(script.Parent.SorterUpdateSystem)
 
 local function ConveyorBeltSystem(world: Types.World)
 	local function addItem(item: string, beltItems: Types.BeltItemComponent, pos: number, index: number)
@@ -91,5 +92,5 @@ end
 return {
 	system = ConveyorBeltSystem,
 	event = "FixedUpdate",
-	after = { MinerSystem },
+	after = { MinerSystem, SorterUpdateSystem },
 }
