@@ -5,7 +5,7 @@ registry = "test"
 [[package]]
 name = "leonardo/factory-game"
 version = "0.1.0"
-dependencies = [["ParallelWorker", "maximumadhd/parallel-worker@1.0.0"], ["plasma", "matter-ecs/plasma@0.4.4"], ["signal", "sleitnick/signal@2.0.3"]]
+dependencies = [["ParallelWorker", "maximumadhd/parallel-worker@1.0.0"], ["TestEZ", "roblox/testez@0.4.1"], ["plasma", "matter-ecs/plasma@0.4.4"], ["signal", "sleitnick/signal@2.0.3"]]
 
 [[package]]
 name = "matter-ecs/plasma"
@@ -15,6 +15,11 @@ dependencies = []
 [[package]]
 name = "maximumadhd/parallel-worker"
 version = "1.0.0"
+dependencies = []
+
+[[package]]
+name = "roblox/testez"
+version = "0.4.1"
 dependencies = []
 
 [[package]]

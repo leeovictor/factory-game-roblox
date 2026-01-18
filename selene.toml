@@ -1,1 +1,3 @@
-std = "roblox"
+std = "roblox+testez"
+
+exclude = ["Packages/*", "out/", "typedefs/*"]

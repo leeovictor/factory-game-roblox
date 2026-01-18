@@ -1,0 +1,1 @@
+roots = ["ReplicatedStorage/Shared/Tests", "StarterPlayer/StarterPlayerScripts/Client/Tests"]

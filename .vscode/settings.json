@@ -1,4 +1,10 @@
 {
-    "stylua.targetReleaseVersion": "latest",
-    "editor.formatOnSave": true
+  "stylua.targetReleaseVersion": "latest",
+  "editor.formatOnSave": true,
+  "selene.run": "onSave",
+  "selene.selenePath": "/home/leonardo/.cargo/bin/selene",
+  "selene.warnRoblox": true,
+  "luau-lsp.types.definitionFiles": {
+    "testez": "typedefs/testEZ.d.lua"
+  }
 }
