@@ -30,6 +30,10 @@ end
 
 local gameState = {
 	debug = false,
+	beltDebugger = {
+		paused = false,
+		stepOnce = false,
+	},
 	screens = {},
 }
 local world = extendWorld(Matter.World.new())
