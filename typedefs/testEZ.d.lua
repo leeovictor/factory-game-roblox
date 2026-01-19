@@ -11,6 +11,7 @@ export type Expectation = {
 	throw: (message: string?) -> Expectation,
 	near: (goal: number, limit: number?) -> Expectation,
 	equal: (goal: any) -> Expectation,
+	never: Expectation,
 }
 
 declare function describe(name: string, out: () -> ()): ()

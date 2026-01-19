@@ -1,0 +1,63 @@
+{
+	"Matter System": {
+		"prefix": "msystem",
+		"body": [
+			"local ReplicatedStorage = game:GetService(\"ReplicatedStorage\")",
+			"local Components = require(ReplicatedStorage.Shared.Components)",
+			"local Types = require(ReplicatedStorage.Shared.Types)",
+			"${1:-- Additional requires}",
+			"",
+			"local function ${2:SystemName}(world: Types.World)",
+			"\t${3:-- System logic}",
+			"\tfor ${4:id}, ${5:component}: ${6:Types.ComponentType} in world:query(Components.${7:ComponentName}) do",
+			"\t\t${0}",
+			"\tend",
+			"end",
+			"",
+			"return {",
+			"\tsystem = ${2:SystemName},",
+			"\tevent = \"${8|FixedUpdate,Heartbeat,RenderStepped|}\",",
+			"\tafter = { ${9} },",
+			"}"
+		],
+		"description": "Create a new Matter ECS system"
+	},
+	"Matter System (Simple)": {
+		"prefix": "msystems",
+		"body": [
+			"local ReplicatedStorage = game:GetService(\"ReplicatedStorage\")",
+			"local Components = require(ReplicatedStorage.Shared.Components)",
+			"local Types = require(ReplicatedStorage.Shared.Types)",
+			"",
+			"local function ${1:SystemName}(world: Types.World)",
+			"\t${0}",
+			"end",
+			"",
+			"return {",
+			"\tsystem = ${1:SystemName},",
+			"\tevent = \"${2|FixedUpdate,Heartbeat,RenderStepped|}\",",
+			"}"
+		],
+		"description": "Create a simple Matter ECS system without dependencies"
+	},
+	"Matter Query": {
+		"prefix": "mquery",
+		"body": [
+			"for ${1:id}, ${2:component}: ${3:Types.ComponentType} in world:query(Components.${4:ComponentName}) do",
+			"\t${0}",
+			"end"
+		],
+		"description": "Create a Matter component query"
+	},
+	"Matter Multi-Component Query": {
+		"prefix": "mquery2",
+		"body": [
+			"for ${1:id}, ${2:comp1}: ${3:Types.Component1}, ${4:comp2}: ${5:Types.Component2} in",
+			"\tworld:query(Components.${6:Component1}, Components.${7:Component2})",
+			"do",
+			"\t${0}",
+			"end"
+		],
+		"description": "Create a Matter query with multiple components"
+	}
+}
