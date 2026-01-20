@@ -1,11 +1,47 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Matter = require(ReplicatedStorage.Matter)
+local BeltHelpers = require(ReplicatedStorage.Shared.BeltHelpers)
 local Components = require(ReplicatedStorage.Shared.Components)
-local BeltSettings = require(ReplicatedStorage.Shared.BeltSettings)
-local ConveyorBeltSystem = require(script.Parent.Parent.systems.ConveyorBeltSytem)
+local Types = require(ReplicatedStorage.Shared.Types)
+local ConveyorBeltSystemV2 = require(script.Parent.Parent.systems.ConveyorBeltUpdateV2)
 
-local function createMockItem(pos)
-	return { item = "iron_ore", pos = pos }
+local function createItem(distFromNext: number): Types.BeltItemV2
+	return {
+		item = "TestItem",
+		distFromNext = distFromNext,
+	}
+end
+
+local function runTimes(callback: () -> (), n: number)
+	for _ = 1, n do
+		callback()
+	end
+end
+
+local function createBeltSegComp(data: {
+	distToInsertAtStart: number,
+	speed: number,
+	nextSeg: Types.EntityId?,
+	prevSeg: Types.EntityId?,
+	nodes: { Types.EntityId }?,
+}): Types.BeltSegment
+	return Components.BeltSegment({
+		distToInsertAtStart = data.distToInsertAtStart,
+		nodes = data.nodes or {},
+		speed = data.speed,
+		prevSeg = data.prevSeg,
+		nextSeg = data.nextSeg,
+	} :: Types.BeltSegment)
+end
+
+local function createBeltItemsComp(data: { positions: { number } }): Types.BeltItemsV2
+	local items: { Types.BeltItemV2 } = {}
+	for _, p in ipairs(data.positions) do
+		table.insert(items, createItem(p))
+	end
+	return Components.BeltItemsV2({
+		items = items,
+	})
 end
 
 return function()
@@ -21,615 +57,246 @@ return function()
 			world:clear()
 		end)
 
-		describe("Item Movement", function()
-			it("should move single item on belt with sufficient space ahead", function()
+		it(
+			"should decrement the first item if it has not reached the end of the belt and update the distToInsertAtStart accordingly",
+			function()
 				local beltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = 1,
-					}),
-					Components.BeltItems({
-						items = {
-							createMockItem(80),
-							createMockItem(60),
-						},
-						version = 0,
-					})
-				)
-				world:commitCommands()
-
-				ConveyorBeltSystem.system(world)
-
-				local beltItems = world:get(beltId, Components.BeltItems)
-				expect(beltItems.items[1].pos).to.equal(79)
-			end)
-
-			it("should move multiple items with spacing greater than ItemOcupancy", function()
-				local beltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = {
-							{ item = "iron_ore", pos = 80 },
-							{ item = "copper_ore", pos = 120 },
-						},
-						version = 0,
-					})
+					createBeltSegComp({ distToInsertAtStart = 0, speed = 1 }),
+					createBeltItemsComp({ positions = { 100, 50, 200 } })
 				)
 
-				ConveyorBeltSystem.system(world)
+				ConveyorBeltSystemV2.system(world)
 
-				local beltItems = world:get(beltId, Components.BeltItems)
-				expect(beltItems.items[1].pos).to.equal(76) -- Both should move
-				expect(beltItems.items[2].pos).to.equal(116)
-			end)
+				local beltSeg: Types.BeltSegment = world:get(beltId, Components.BeltSegment)
+				local beltItems: Types.BeltItemsV2 = world:get(beltId, Components.BeltItemsV2)
 
-			it("should NOT move item when spacing equals ItemOcupancy", function()
+				expect(beltItems.items[1].distFromNext).to.be.equal(99)
+				expect(beltItems.items[2].distFromNext).to.be.equal(50)
+				expect(beltItems.items[3].distFromNext).to.be.equal(200)
+
+				expect(beltSeg.distToInsertAtStart).to.be.equal(1)
+			end
+		)
+
+		it(
+			"should increment the last item if it has not reached the end of the belt and update the distToInsertAtStart accordingly",
+			function()
 				local beltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = {
-							{ item = "iron_ore", pos = 40 },
-							{ item = "copper_ore", pos = 80 }, -- Exactly ItemOcupancy (40) away
-						},
-						version = 0,
-					})
+					createBeltSegComp({ distToInsertAtStart = 0, speed = 1 }),
+					createBeltItemsComp({ positions = { 40, 40, 200 } })
 				)
 
-				ConveyorBeltSystem.system(world)
+				ConveyorBeltSystemV2.system(world)
 
-				local beltItems = world:get(beltId, Components.BeltItems)
-				expect(beltItems.items[1].pos).to.equal(40) -- First does NOT move (pos - 0 = 40, not > 40)
-				expect(beltItems.items[2].pos).to.equal(80) -- Second does NOT move (spacing = ItemOcupancy)
-			end)
+				local beltSeg: Types.BeltSegment = world:get(beltId, Components.BeltSegment)
+				local beltItems: Types.BeltItemsV2 = world:get(beltId, Components.BeltItemsV2)
 
-			it("should handle first item on belt (no previous item)", function()
-				local beltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = { { item = "iron_ore", pos = 80 } },
-						version = 0,
-					})
-				)
+				expect(beltItems.items[1].distFromNext).to.be.equal(40)
+				expect(beltItems.items[2].distFromNext).to.be.equal(40)
+				expect(beltItems.items[3].distFromNext).to.be.equal(199)
 
-				ConveyorBeltSystem.system(world)
+				expect(beltSeg.distToInsertAtStart).to.be.equal(1)
+			end
+		)
 
-				local beltItems = world:get(beltId, Components.BeltItems)
-				expect(beltItems.items[1].pos).to.equal(76)
-			end)
+		it("should move the first item if there a nextBelt connected and has space available", function()
+			local nextBeltId = world:spawn()
+			local beltId = world:spawn()
+			world:insert(
+				nextBeltId,
+				createBeltSegComp({ distToInsertAtStart = 0, speed = 1, prevSeg = beltId }),
+				createBeltItemsComp({ positions = { 100 } })
+			)
+			world:insert(
+				beltId,
+				createBeltSegComp({ distToInsertAtStart = 0, speed = 1, nextSeg = nextBeltId }),
+				createBeltItemsComp({ positions = { 40, 40 } })
+			)
+
+			ConveyorBeltSystemV2.system(world)
+
+			local beltSeg: Types.BeltSegment = world:get(beltId, Components.BeltSegment)
+			local beltItems: Types.BeltItemsV2 = world:get(beltId, Components.BeltItemsV2)
+
+			local nextBeltSeg: Types.BeltSegment = world:get(nextBeltId, Components.BeltSegment)
+			local nextBeltItems: Types.BeltItemsV2 = world:get(nextBeltId, Components.BeltItemsV2)
+
+			-- nextseg update
+			expect(nextBeltSeg.distToInsertAtStart).to.be.equal(1)
+			expect(nextBeltItems.items[1].distFromNext).to.be.equal(99)
+
+			-- current seg update
+			expect(beltItems.items[1].distFromNext).to.be.equal(39)
+			expect(beltItems.items[2].distFromNext).to.be.equal(40)
+			expect(beltSeg.distToInsertAtStart).to.be.equal(1)
 		end)
 
-		describe("Item Transfer", function()
-			it("should transfer item to empty target belt", function()
-				-- Setup target belt node
-				local targetBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 201, 202 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = {},
-						version = 0,
-					})
-				)
+		it("should not move the first item if there not space available in the next belt", function()
+			local nextBeltId = world:spawn()
+			local beltId = world:spawn()
+			world:insert(
+				nextBeltId,
+				createBeltSegComp({ distToInsertAtStart = 2, speed = 1, prevSeg = beltId }),
+				createBeltItemsComp({ positions = { 40 } })
+			)
+			world:insert(
+				beltId,
+				createBeltSegComp({ distToInsertAtStart = 0, speed = 1, nextSeg = nextBeltId }),
+				createBeltItemsComp({ positions = { 38, 40 } })
+			)
 
-				local targetNodeId = 201
-				world:spawnAt(
-					targetNodeId,
-					Components.BeltNode({
-						beltPath = targetBeltId,
-						nodeIndex = 1,
-						pos = Vector3.new(0, 0, 0),
-						dirVector = Vector3.new(1, 0, 0),
-						cframe = CFrame.new(0, 0, 0),
-						index = 1,
-						direction = "top",
-					})
-				)
+			runTimes(function()
+				ConveyorBeltSystemV2.system(world)
+			end, 50)
 
-				-- Setup source belt with output connection
-				local sourceBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-						beltNodeOutput = targetNodeId,
-					}),
-					Components.BeltItems({
-						items = { { item = "iron_ore", pos = BeltSettings.ItemOcupancy } },
-						version = 0,
-					})
-				)
+			local beltSeg: Types.BeltSegment = world:get(beltId, Components.BeltSegment)
+			local beltItems: Types.BeltItemsV2 = world:get(beltId, Components.BeltItemsV2)
 
-				ConveyorBeltSystem.system(world)
+			local nextBeltSeg: Types.BeltSegment = world:get(nextBeltId, Components.BeltSegment)
+			local nextBeltItems: Types.BeltItemsV2 = world:get(nextBeltId, Components.BeltItemsV2)
 
-				-- Item should be removed from source
-				local sourceBeltItems = world:get(sourceBeltId, Components.BeltItems)
-				expect(#sourceBeltItems.items).to.equal(0)
+			-- nextseg update
+			expect(nextBeltSeg.distToInsertAtStart).to.be.equal(2)
+			expect(nextBeltItems.items[1].distFromNext).to.be.equal(40)
 
-				-- Item should appear in target
-				local targetBeltItems = world:get(targetBeltId, Components.BeltItems)
-				expect(#targetBeltItems.items).to.equal(1)
-				expect(targetBeltItems.items[1].item).to.equal("iron_ore")
-			end)
+			-- current seg update
+			expect(beltItems.items[1].distFromNext).to.be.equal(38)
+			expect(beltItems.items[2].distFromNext).to.be.equal(40)
 
-			it("should NOT transfer when item not at transfer position", function()
-				local targetBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 201, 202 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = {},
-						version = 0,
-					})
-				)
-
-				local targetNodeId = 201
-				world:spawnAt(
-					targetNodeId,
-					Components.BeltNode({
-						beltPath = targetBeltId,
-						nodeIndex = 1,
-						pos = Vector3.new(0, 0, 0),
-						dirVector = Vector3.new(1, 0, 0),
-						cframe = CFrame.new(0, 0, 0),
-						index = 1,
-						direction = "top",
-					})
-				)
-
-				local sourceBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-						beltNodeOutput = targetNodeId,
-					}),
-					Components.BeltItems({
-						items = { { item = "iron_ore", pos = 50 } }, -- Not at ItemOcupancy
-						version = 0,
-					})
-				)
-
-				ConveyorBeltSystem.system(world)
-
-				-- Item should still be in source
-				local sourceBeltItems = world:get(sourceBeltId, Components.BeltItems)
-				expect(#sourceBeltItems.items).to.equal(1)
-
-				-- Target should remain empty
-				local targetBeltItems = world:get(targetBeltId, Components.BeltItems)
-				expect(#targetBeltItems.items).to.equal(0)
-			end)
-
-			it("should NOT transfer when belt has no output connection", function()
-				local sourceBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-						beltNodeOutput = nil, -- No connection
-					}),
-					Components.BeltItems({
-						items = { { item = "iron_ore", pos = BeltSettings.ItemOcupancy } },
-						version = 0,
-					})
-				)
-
-				ConveyorBeltSystem.system(world)
-
-				-- Item should remain in source
-				local sourceBeltItems = world:get(sourceBeltId, Components.BeltItems)
-				expect(#sourceBeltItems.items).to.equal(1)
-			end)
-
-			it("should NOT transfer when target belt has no space", function()
-				local targetBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 201, 202 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = {
-							-- Item blocking the insertion point
-							{ item = "copper_ore", pos = 60 },
-						},
-						version = 0,
-					})
-				)
-
-				local targetNodeId = 201
-				world:spawnAt(
-					targetNodeId,
-					Components.BeltNode({
-						beltPath = targetBeltId,
-						nodeIndex = 1,
-						pos = Vector3.new(0, 0, 0),
-						dirVector = Vector3.new(1, 0, 0),
-						cframe = CFrame.new(0, 0, 0),
-						index = 1,
-						direction = "top",
-					})
-				)
-
-				local sourceBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-						beltNodeOutput = targetNodeId,
-					}),
-					Components.BeltItems({
-						items = { { item = "iron_ore", pos = BeltSettings.ItemOcupancy } },
-						version = 0,
-					})
-				)
-
-				ConveyorBeltSystem.system(world)
-
-				-- Item should remain in source
-				local sourceBeltItems = world:get(sourceBeltId, Components.BeltItems)
-				expect(#sourceBeltItems.items).to.equal(1)
-
-				-- Target should still have only one item
-				local targetBeltItems = world:get(targetBeltId, Components.BeltItems)
-				expect(#targetBeltItems.items).to.equal(1)
-				expect(targetBeltItems.items[1].item).to.equal("copper_ore")
-			end)
-
-			it("should transfer item to target belt with existing items when space available", function()
-				local targetBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 201, 202 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = {
-							-- Item far enough to allow insertion (pos 10 gives >40 space to pos 60)
-							{ item = "copper_ore", pos = 10 },
-						},
-						version = 0,
-					})
-				)
-
-				local targetNodeId = 201
-				world:spawnAt(
-					targetNodeId,
-					Components.BeltNode({
-						beltPath = targetBeltId,
-						nodeIndex = 1,
-						pos = Vector3.new(0, 0, 0),
-						dirVector = Vector3.new(1, 0, 0),
-						cframe = CFrame.new(0, 0, 0),
-						index = 1,
-						direction = "top",
-					})
-				)
-
-				local sourceBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-						beltNodeOutput = targetNodeId,
-					}),
-					Components.BeltItems({
-						items = { { item = "iron_ore", pos = BeltSettings.ItemOcupancy } },
-						version = 0,
-					})
-				)
-
-				ConveyorBeltSystem.system(world)
-
-				-- Item should be removed from source
-				local sourceBeltItems = world:get(sourceBeltId, Components.BeltItems)
-				expect(#sourceBeltItems.items).to.equal(0)
-
-				-- Target should have both items
-				local targetBeltItems = world:get(targetBeltId, Components.BeltItems)
-				expect(#targetBeltItems.items).to.equal(2)
-			end)
+			expect(beltSeg.distToInsertAtStart).to.be.equal(0)
 		end)
 
-		describe("Insertion Position Calculation", function()
-			it("should calculate correct insertion position for single-node belt", function()
-				local targetBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 201 }, -- Single node
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = {},
-						version = 0,
-					})
-				)
+		it("should transfer first item if distFromNext reach 0 and was space on the next belt", function()
+			local nextBeltId = world:spawn()
+			local beltId = world:spawn()
+			world:insert(
+				nextBeltId,
+				createBeltSegComp({ distToInsertAtStart = 100, speed = 1, prevSeg = beltId }),
+				createBeltItemsComp({ positions = {} })
+			)
+			world:insert(
+				beltId,
+				createBeltSegComp({ distToInsertAtStart = 0, speed = 1, nextSeg = nextBeltId }),
+				createBeltItemsComp({ positions = { 1, 40 } })
+			)
 
-				local targetNodeId = 201
-				world:spawnAt(
-					targetNodeId,
-					Components.BeltNode({
-						beltPath = targetBeltId,
-						nodeIndex = 1,
-						pos = Vector3.new(0, 0, 0),
-						dirVector = Vector3.new(1, 0, 0),
-						cframe = CFrame.new(0, 0, 0),
-						index = 1,
-						direction = "top",
-					})
-				)
+			ConveyorBeltSystemV2.system(world)
 
-				local sourceBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-						beltNodeOutput = targetNodeId,
-					}),
-					Components.BeltItems({
-						items = { { item = "iron_ore", pos = BeltSettings.ItemOcupancy } },
-						version = 0,
-					})
-				)
+			local beltSeg: Types.BeltSegment = world:get(beltId, Components.BeltSegment)
+			local beltItems: Types.BeltItemsV2 = world:get(beltId, Components.BeltItemsV2)
 
-				ConveyorBeltSystem.system(world)
+			local nextBeltSeg: Types.BeltSegment = world:get(nextBeltId, Components.BeltSegment)
+			local nextBeltItems: Types.BeltItemsV2 = world:get(nextBeltId, Components.BeltItemsV2)
 
-				local targetBeltItems = world:get(targetBeltId, Components.BeltItems)
-				-- Formula: (beltLength - nodeIndex * BeltSubdiv) + BeltSubdiv / 2
-				-- = (1 * 40 - 1 * 40) + 40 / 2 = 0 + 20 = 20
-				expect(targetBeltItems.items[1].pos).to.equal(20)
-			end)
+			expect(#beltItems.items).to.be.equal(1)
+			expect(#nextBeltItems.items).to.be.equal(1)
 
-			it("should calculate correct insertion position for multi-node belt at first node", function()
-				local targetBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 201, 202, 203 }, -- 3 nodes
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = {},
-						version = 0,
-					})
-				)
+			expect(nextBeltSeg.distToInsertAtStart).to.be.equal(0)
+			expect(beltSeg.distToInsertAtStart).to.be.equal(1)
 
-				local targetNodeId = 201
-				world:spawnAt(
-					targetNodeId,
-					Components.BeltNode({
-						beltPath = targetBeltId,
-						nodeIndex = 1,
-						pos = Vector3.new(0, 0, 0),
-						dirVector = Vector3.new(1, 0, 0),
-						cframe = CFrame.new(0, 0, 0),
-						index = 1,
-						direction = "top",
-					})
-				)
+			expect(beltItems.items[1].distFromNext).to.be.equal(40)
+			expect(nextBeltItems.items[1].distFromNext).to.be.equal(100)
+		end)
+	end)
 
-				local sourceBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-						beltNodeOutput = targetNodeId,
-					}),
-					Components.BeltItems({
-						items = { { item = "iron_ore", pos = BeltSettings.ItemOcupancy } },
-						version = 0,
-					})
-				)
+	describe("BeltHelpers", function()
+		local world
 
-				ConveyorBeltSystem.system(world)
-
-				local targetBeltItems = world:get(targetBeltId, Components.BeltItems)
-				-- Formula: (beltLength - nodeIndex * BeltSubdiv) + BeltSubdiv / 2
-				-- = (3 * 40 - 1 * 40) + 40 / 2 = 80 + 20 = 100
-				expect(targetBeltItems.items[1].pos).to.equal(100)
-			end)
-
-			it("should calculate correct insertion position for middle node", function()
-				local targetBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 201, 202, 203 }, -- 3 nodes
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = {},
-						version = 0,
-					})
-				)
-
-				local targetNodeId = 202
-				world:spawnAt(
-					targetNodeId,
-					Components.BeltNode({
-						beltPath = targetBeltId,
-						nodeIndex = 2, -- Middle node
-						pos = Vector3.new(0, 0, 0),
-						dirVector = Vector3.new(1, 0, 0),
-						cframe = CFrame.new(0, 0, 0),
-						index = 2,
-						direction = "top",
-					})
-				)
-
-				local sourceBeltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-						beltNodeOutput = targetNodeId,
-					}),
-					Components.BeltItems({
-						items = { { item = "iron_ore", pos = BeltSettings.ItemOcupancy } },
-						version = 0,
-					})
-				)
-
-				ConveyorBeltSystem.system(world)
-
-				local targetBeltItems = world:get(targetBeltId, Components.BeltItems)
-				-- Formula: (beltLength - nodeIndex * BeltSubdiv) + BeltSubdiv / 2
-				-- = (3 * 40 - 2 * 40) + 40 / 2 = 40 + 20 = 60
-				expect(targetBeltItems.items[1].pos).to.equal(60)
-			end)
+		beforeEach(function()
+			world = Matter.World.new()
+			world.FixedDeltaTime = 1 / 60
 		end)
 
-		describe("Edge Cases", function()
-			it("should skip processing belt with no items", function()
-				local beltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = {}, -- Empty
-						version = 0,
-					})
-				)
+		afterEach(function()
+			world:clear()
+		end)
 
-				-- Should not error
-				ConveyorBeltSystem.system(world)
+		it("should find items in node", function()
+			local beltId = world:spawn(
+				createBeltSegComp({ distToInsertAtStart = 0, speed = 1, nodes = { 1, 2, 3 } }),
+				createBeltItemsComp({ positions = { 39, 40 } })
+			)
 
-				local beltItems = world:get(beltId, Components.BeltItems)
-				expect(#beltItems.items).to.equal(0)
-			end)
+			local beltItems: Types.BeltItemsV2 = world:get(beltId, Components.BeltItemsV2)
+			local beltSeg: Types.BeltSegment = world:get(beltId, Components.BeltSegment)
 
-			it("should handle multiple belts simultaneously", function()
-				local belt1 = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = { { item = "iron_ore", pos = 80 } },
-						version = 0,
-					})
-				)
+			local items
+			items = BeltHelpers.findItemsInNode(beltSeg, beltItems, 3)
+			expect(items.item).to.be.equal(beltItems.items[1])
+			expect(items.index).to.be.equal(1)
 
-				local belt2 = world:spawn(
-					Components.BeltPath({
-						nodes = { 200, 201 },
-						speed = BeltSettings.BeltSpeeds.Fast,
-					}),
-					Components.BeltItems({
-						items = { { item = "copper_ore", pos = 100 } },
-						version = 0,
-					})
-				)
+			items = BeltHelpers.findItemsInNode(beltSeg, beltItems, 2)
+			expect(items.item).to.be.equal(beltItems.items[2])
+			expect(items.index).to.be.equal(2)
 
-				ConveyorBeltSystem.system(world)
+			items = BeltHelpers.findItemsInNode(beltSeg, beltItems, 1)
+			expect(items).to.be.equal(nil)
+		end)
 
-				local belt1Items = world:get(belt1, Components.BeltItems)
-				local belt2Items = world:get(belt2, Components.BeltItems)
+		it("should not find item if belt is empty", function()
+			local beltId = world:spawn(
+				createBeltSegComp({ distToInsertAtStart = 0, speed = 1, nodes = { 1, 2, 3 } }),
+				createBeltItemsComp({ positions = {} })
+			)
 
-				expect(belt1Items.items[1].pos).to.equal(76) -- Moved by Slow speed
-				expect(belt2Items.items[1].pos).to.equal(80) -- Moved by Fast speed
-			end)
+			local beltItems: Types.BeltItemsV2 = world:get(beltId, Components.BeltItemsV2)
+			local beltSeg: Types.BeltSegment = world:get(beltId, Components.BeltSegment)
 
-			it("should handle belt chain transfers (A -> B -> C)", function()
-				-- Belt C (end of chain)
-				local beltC = world:spawn(
-					Components.BeltPath({
-						nodes = { 301, 302 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = {},
-						version = 0,
-					})
-				)
+			local items
+			items = BeltHelpers.findItemsInNode(beltSeg, beltItems, 3)
+			expect(items).to.be.equal(nil)
+		end)
 
-				local nodeCId = 301
-				world:spawnAt(
-					nodeCId,
-					Components.BeltNode({
-						beltPath = beltC,
-						nodeIndex = 1,
-						pos = Vector3.new(0, 0, 0),
-						dirVector = Vector3.new(1, 0, 0),
-						cframe = CFrame.new(0, 0, 0),
-						index = 1,
-						direction = "top",
-					})
-				)
+		it("should not find item if first item is beyond the node range", function()
+			local beltId = world:spawn(
+				createBeltSegComp({ distToInsertAtStart = 0, speed = 1, nodes = { 1, 2, 3 } }),
+				createBeltItemsComp({ positions = { 121, 130 } })
+			)
 
-				-- Belt B (middle)
-				local beltB = world:spawn(
-					Components.BeltPath({
-						nodes = { 201, 202 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-						beltNodeOutput = nodeCId,
-					}),
-					Components.BeltItems({
-						items = { { item = "copper_ore", pos = BeltSettings.ItemOcupancy } },
-						version = 0,
-					})
-				)
+			local beltItems: Types.BeltItemsV2 = world:get(beltId, Components.BeltItemsV2)
+			local beltSeg: Types.BeltSegment = world:get(beltId, Components.BeltSegment)
 
-				local nodeBId = 201
-				world:spawnAt(
-					nodeBId,
-					Components.BeltNode({
-						beltPath = beltB,
-						nodeIndex = 1,
-						pos = Vector3.new(0, 0, 0),
-						dirVector = Vector3.new(1, 0, 0),
-						cframe = CFrame.new(0, 0, 0),
-						index = 1,
-						direction = "top",
-					})
-				)
+			local items
+			items = BeltHelpers.findItemsInNode(beltSeg, beltItems, 3)
+			expect(items).to.be.equal(nil)
+		end)
 
-				-- Belt A (start)
-				local beltA = world:spawn(
-					Components.BeltPath({
-						nodes = { 101, 102 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-						beltNodeOutput = nodeBId,
-					}),
-					Components.BeltItems({
-						items = { { item = "iron_ore", pos = BeltSettings.ItemOcupancy } },
-						version = 0,
-					})
-				)
+		it("should not find item when item are in between the node", function()
+			local beltId = world:spawn(
+				createBeltSegComp({ distToInsertAtStart = 0, speed = 1, nodes = { 1, 2, 3, 4 } }),
+				createBeltItemsComp({ positions = { 38, 159 - 38 } })
+			)
 
-				-- First tick: A -> B, B -> C
-				ConveyorBeltSystem.system(world)
+			local beltItems: Types.BeltItemsV2 = world:get(beltId, Components.BeltItemsV2)
+			local beltSeg: Types.BeltSegment = world:get(beltId, Components.BeltSegment)
 
-				local beltAItems = world:get(beltA, Components.BeltItems)
-				local beltBItems = world:get(beltB, Components.BeltItems)
-				local beltCItems = world:get(beltC, Components.BeltItems)
+			local result = BeltHelpers.findItemsInNode(beltSeg, beltItems, 4)
+			expect(result.item).to.be.equal(beltItems.items[1])
+			result = BeltHelpers.findItemsInNode(beltSeg, beltItems, 1)
+			expect(result.item).to.be.equal(beltItems.items[2])
 
-				expect(#beltAItems.items).to.equal(0) -- Transferred to B
-				expect(#beltBItems.items).to.equal(1) -- Received from A (copper transferred to C)
-				expect(#beltCItems.items).to.equal(1) -- Received from B
-				expect(beltCItems.items[1].item).to.equal("copper_ore")
-			end)
+			result = BeltHelpers.findItemsInNode(beltSeg, beltItems, 3)
+			expect(result).to.be.equal(nil)
+		end)
 
-			it("should mutate BeltItems components in-place", function()
-				local beltId = world:spawn(
-					Components.BeltPath({
-						nodes = { 100, 101 },
-						speed = BeltSettings.BeltSpeeds.Slow,
-					}),
-					Components.BeltItems({
-						items = { { item = "iron_ore", pos = 80 } },
-						version = 0,
-					})
-				)
+		it("node range", function()
+			local beltSeg = createBeltSegComp({ distToInsertAtStart = 0, speed = 1, nodes = { 1, 2, 3, 4 } })
 
-				local beltItemsBefore = world:get(beltId, Components.BeltItems)
-				local initialPos = beltItemsBefore.items[1].pos
+			local start, endRange = BeltHelpers.getNodeRange(beltSeg, 1)
+			expect(start).to.be.equal(120)
+			expect(endRange).to.be.equal(159)
 
-				ConveyorBeltSystem.system(world)
+			start, endRange = BeltHelpers.getNodeRange(beltSeg, 2)
+			expect(start).to.be.equal(80)
+			expect(endRange).to.be.equal(119)
 
-				local beltItemsAfter = world:get(beltId, Components.BeltItems)
+			start, endRange = BeltHelpers.getNodeRange(beltSeg, 3)
+			expect(start).to.be.equal(40)
+			expect(endRange).to.be.equal(79)
 
-				-- Should be same component instance (mutated in-place)
-				expect(beltItemsAfter.items[1].pos).to.never.equal(initialPos)
-				expect(beltItemsAfter.items[1].pos).to.equal(76)
-			end)
+			start, endRange = BeltHelpers.getNodeRange(beltSeg, 4)
+			expect(start).to.be.equal(0)
+			expect(endRange).to.be.equal(39)
 		end)
 	end)
 end

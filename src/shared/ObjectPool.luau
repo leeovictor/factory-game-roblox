@@ -1,11 +1,19 @@
 local ObjectPool = {}
 ObjectPool.__index = ObjectPool
-function ObjectPool.new(createFunc: () -> Instance, maxSize: number)
+
+export type ObjectPoolData = {
+	createFunc: () -> Instance,
+	pool: { Instance },
+	inUse: { Instance },
+}
+
+export type ObjectPool = typeof(setmetatable({} :: ObjectPoolData, ObjectPool))
+
+function ObjectPool.new(createFunc: () -> Instance): ObjectPool
 	local self = setmetatable({}, ObjectPool)
 	self.createFunc = createFunc
 	self.pool = {}
 	self.inUse = {}
-	self.maxSize = maxSize or 100
 	return self
 end
 
@@ -13,10 +21,8 @@ function ObjectPool:Acquire(...)
 	local obj
 	if #self.pool > 0 then
 		obj = table.remove(self.pool)
-	elseif #self.inUse + #self.pool < self.maxSize then
+	elseif #self.inUse + #self.pool then
 		obj = self.createFunc(...)
-	else
-		error("ObjectPool: Max size reached")
 	end
 	table.insert(self.inUse, obj)
 	return obj

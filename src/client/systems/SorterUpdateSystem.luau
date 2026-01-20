@@ -1,65 +1,91 @@
+local InsertService = game:GetService("InsertService")
+local InstanceExtensionsService = game:GetService("InstanceExtensionsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local BeltHelpers = require(ReplicatedStorage.Shared.BeltHelpers)
 local ProductionFacilitySystem = require(script.Parent.ProductionFacilitySystem)
 local BeltSettings = require(ReplicatedStorage.Shared.BeltSettings)
 local Components = require(ReplicatedStorage.Shared.Components)
 local Enums = require(ReplicatedStorage.Shared.Enums)
-local Helpers = require(ReplicatedStorage.Shared.Helpers)
 local ItemSpecs = require(ReplicatedStorage.Shared.ItemSpecs)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local function SorterUpdateSystem(world: Types.World)
-	local function addItem(beltItems: Types.BeltItemComponent, item: string, pos: number, index: number)
-		table.insert(
-			beltItems.items,
-			index,
-			{
-				pos = pos,
-				item = item,
-				mesh = Helpers.createItemMesh(item),
-			} :: Types.BeltItem
-		)
-	end
+	local function addItem(
+		beltId: Types.EntityId,
+		beltSeg: Types.BeltSegment,
+		beltItems: Types.BeltItemsV2,
+		itemKey: string,
+		distFromNext: number,
+		index: number
+	)
+		-- print("Adding item", itemKey, "at dist", distFromNext, "at index", index)
 
-	local function takeItem(items: { Types.BeltItem }, index: number): Types.ItemKey
-		local item = items[index]
-		table.remove(items, index)
-		item.mesh:Destroy()
-		return item.item
-	end
-
-	local function tryTakeItemFromBeltNode(beltNodeEntityId: Types.EntityId): Types.ItemKey?
-		-- REVIEW: podemos tentar salvar na conexao do sorter o belt id junto com o node index para evitar esse get
-		local beltNode: Types.BeltNodeComponent = world:get(beltNodeEntityId, Components.BeltNode)
-		local beltItems: Types.BeltItemComponent = world:get(beltNode.beltPath, Components.BeltItems)
-
-		if #beltItems.items == 0 then
-			return nil
+		local meshesChanges: Types.MeshesChanges = world:get(beltId, Components.MeshesChanges)
+		if meshesChanges == nil then
+			meshesChanges = Components.MeshesChanges({ added = {} })
+			world:insert(beltId, meshesChanges)
+			world:commitCommands()
 		end
 
-		local beltPath: Types.BeltPath = world:get(beltNode.beltPath, Components.BeltPath)
-		local removePoint = #beltPath.nodes * BeltSettings.BeltSubdiv
-			- beltNode.nodeIndex * BeltSettings.BeltSubdiv
-			+ BeltSettings.BeltSubdiv / 2
-		local startPoint = removePoint + (BeltSettings.BeltSubdiv / 2)
-		local endPoint = removePoint - (BeltSettings.BeltSubdiv / 2)
+		local item = {
+			distFromNext = distFromNext,
+			item = itemKey,
+		} :: Types.BeltItemV2
+		table.insert(meshesChanges.added, item)
 
-		if beltItems.items[1].pos > startPoint then
-			return nil
-		end
+		if beltItems.items[index] ~= nil then
+			local diff = beltItems.items[index].distFromNext - distFromNext
+			if diff < BeltSettings.ItemOcupancy then
+				-- comprimi os items anteriores para abrir espaço
+				-- TODO: se o segmento não tiver espaço suficiente? no momento está quebrado nesse caso
+				beltItems.items[index].distFromNext = BeltSettings.ItemOcupancy
+				local neededSpace = BeltSettings.ItemOcupancy - diff
+				local i = index + 1
+				while neededSpace > 0 and beltItems.items[i] ~= nil do
+					local availableSpace = beltItems.items[i].distFromNext - BeltSettings.ItemOcupancy
+					if availableSpace > 0 then
+						local toShift = math.min(availableSpace, neededSpace)
+						beltItems.items[i].distFromNext -= toShift
+						neededSpace -= toShift
+					end
+					i += 1
+				end
 
-		for index, item: Types.BeltItem in ipairs(beltItems.items) do
-			if item.pos < endPoint then
-				continue
+				if beltItems.items[i] == nil and neededSpace > 0 then
+					beltSeg.distToInsertAtStart -= neededSpace
+				end
+			else
+				beltItems.items[index].distFromNext -= distFromNext
 			end
+			-- local a = 40
+			-- local i = index
+			-- while a > 0 and beltItems.items[i] ~= nil do
+			-- 	print("Shifting item at index", i, "distFromNext", beltItems.items[i].distFromNext)
+			-- 	local space = math.min(beltItems.items[i].distFromNext - 40, a)
+			-- 	beltItems.items[i].distFromNext -= space
+			-- 	a -= space
+			-- 	i += 1
+			-- end
 
-			if item.pos > startPoint then
-				break
+			-- if beltItems.items[i] == nil and a > 0 then
+			-- 	beltSeg.distToInsertAtStart -= a
+			-- 	if beltSeg.distToInsertAtStart < 0 then
+			-- 		beltSeg.distToInsertAtStart = 0
+			-- 	end
+			-- end
+
+			-- beltItems.items[index].distFromNext -= distFromNext
+			-- if beltItems.items[index].distFromNext < BeltSettings.ItemOcupancy then
+			-- 	beltItems.items[index].distFromNext = BeltSettings.ItemOcupancy
+			-- end
+		else
+			beltSeg.distToInsertAtStart -= distFromNext
+			if beltSeg.distToInsertAtStart < 0 then
+				beltSeg.distToInsertAtStart = 0
 			end
-
-			return takeItem(beltItems.items, index)
 		end
 
-		return nil
+		table.insert(beltItems.items, index, item)
 	end
 
 	local function tryTakeItemFromFacility(facilityEntityId: Types.EntityId): Types.ItemKey?
@@ -85,7 +111,8 @@ local function SorterUpdateSystem(world: Types.World)
 		end
 
 		if inputCon.entityType == Enums.SorterConnectionEntityType.Belt then
-			return tryTakeItemFromBeltNode(inputCon.entityId)
+			local item = BeltHelpers.tryTakeItemFromBeltNode(world, inputCon.entityId)
+			return item and item.item or nil
 		elseif inputCon.entityType == Enums.SorterConnectionEntityType.Facility then
 			return tryTakeItemFromFacility(inputCon.entityId)
 		else
@@ -95,36 +122,38 @@ local function SorterUpdateSystem(world: Types.World)
 
 	local function tryDeliverItemToBeltNode(beltNodeEntityId: Types.EntityId, item: Types.ItemKey): boolean
 		local beltNode: Types.BeltNodeComponent = world:get(beltNodeEntityId, Components.BeltNode)
-		local beltPath: Types.BeltPath = world:get(beltNode.beltPath, Components.BeltPath)
-		local beltItems: Types.BeltItemComponent = world:get(beltNode.beltPath, Components.BeltItems)
+		local beltSeg: Types.BeltSegment = world:get(beltNode.beltPath, Components.BeltSegment)
+		local beltItems: Types.BeltItemsV2 = world:get(beltNode.beltPath, Components.BeltItemsV2)
 
-		local itemPosInsertion = (
-			#beltPath.nodes * BeltSettings.BeltSubdiv - beltNode.nodeIndex * BeltSettings.BeltSubdiv
-		) + BeltSettings.BeltSubdiv / 2
+		local startNode = BeltHelpers.getNodeRange(beltSeg, beltNode.nodeIndex)
 
 		if #beltItems.items == 0 then
-			addItem(beltItems, item, itemPosInsertion, 1)
+			addItem(beltNode.beltPath, beltSeg, beltItems, item, startNode + BeltSettings.BeltSubdiv * 0.5, 1)
 			return true
 		end
 
-		local index
-		for i = 1, #beltItems.items do
-			local itemDist = beltItems.items[i].pos
+		local insertionPoint = startNode + BeltSettings.BeltSubdiv * 0.5
 
-			if itemDist < itemPosInsertion - BeltSettings.ItemOcupancy then
+		local index = 1
+		local itemDist = 0
+		for i = 1, #beltItems.items do
+			itemDist += beltItems.items[i].distFromNext
+
+			if itemDist <= insertionPoint - BeltSettings.ItemOcupancy then
 				index = i + 1
 				continue
 			end
 
-			if itemDist >= itemPosInsertion - BeltSettings.ItemOcupancy and itemDist <= itemPosInsertion + 1 then
+			if itemDist >= insertionPoint - BeltSettings.ItemOcupancy and itemDist < insertionPoint + 1 then
 				return false
 			end
 
 			index = i
+			itemDist -= beltItems.items[i].distFromNext
 			break
 		end
 
-		addItem(beltItems, item, itemPosInsertion, index)
+		addItem(beltNode.beltPath, beltSeg, beltItems, item, insertionPoint - itemDist, index)
 		return true
 	end
 

@@ -73,6 +73,18 @@ function TableUtils.InsertAll(tb, values)
 	return res
 end
 
+function TableUtils.DeepCopy(tb)
+	local res = {}
+	for k, v in pairs(tb) do
+		if type(v) == "table" then
+			res[k] = TableUtils.DeepCopy(v)
+		else
+			res[k] = v
+		end
+	end
+	return res
+end
+
 function TableUtils.Clone(tb)
 	local res = {}
 	for _i, v in ipairs(tb) do

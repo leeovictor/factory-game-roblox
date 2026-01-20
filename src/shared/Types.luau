@@ -3,6 +3,25 @@ local Matter = require(ReplicatedStorage.Matter)
 
 export type EntityId = number
 
+export type BeltSegment = {
+	distToInsertAtStart: number,
+	nodes: { EntityId },
+	speed: number,
+	prevSeg: EntityId?,
+	nextSeg: EntityId?,
+	minerConnected: EntityId?,
+	lastGapIndex: number?,
+}
+
+export type BeltItemV2 = {
+	item: string,
+	distFromNext: number,
+}
+
+export type BeltItemsV2 = {
+	items: { BeltItemV2 },
+}
+
 export type Transform = {
 	cframe: CFrame,
 	isStatic: boolean,
@@ -203,6 +222,26 @@ export type Miner = {
 export type Storage = {
 	capacity: number,
 	currentAmount: number,
+}
+
+-- Sinaliza mudanças nos meshes dos items em esteiras. Usado no sistema ItemsMeshesSync
+-- para adicionar/remover meshes conforme items são adicionados/removidos das esteiras
+-- e também para transferir meshes entre segmentos de esteiras sem deparentamento e chamadas
+-- para o object pool.
+-- Esse componente é adicionado à esteira quando há mudanças e removido após o ItemsMeshesSync
+-- processar as mudanças. Esteiras não sendo renderizadas não terão esse componente.
+-- Esse componente é criado em chamadas aos métodos de BeltItemsManager.
+export type MeshesChanges = {
+	added: { BeltItemV2 },
+	removed: { BeltItemV2 },
+
+	--[[ Usado apenas na transferência de items entre segmentos de esteira
+	evitando reparentamento e chamadas para o mesh object pool ]]
+	transferred: { { to: EntityId, item: BeltItemV2 } },
+}
+
+export type ItemsMeshes = {
+	[BeltItemV2]: MeshPart,
 }
 
 return {}

@@ -55,4 +55,10 @@ return {
 	SorterModel = Matter.component("SorterModel"),
 	SortersConnected = Matter.component("SortersConnected"),
 	BeltsConnected = Matter.component("BeltsConnected"),
+
+	BeltSegment = Matter.component("BeltSegment"),
+	BeltItemsV2 = Matter.component("BeltItemsV2"),
+
+	MeshesChanges = Matter.component("MeshesChanges"),
+	ItemsMeshes = Matter.component("ItemsMeshes"),
 }

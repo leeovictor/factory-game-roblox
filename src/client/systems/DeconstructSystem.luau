@@ -1,5 +1,6 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local matter = require(ReplicatedStorage.Matter)
 local CollisionGroups = require(ReplicatedStorage.Shared.CollisionGroups)
 local Components = require(ReplicatedStorage.Shared.Components)
@@ -9,6 +10,17 @@ local MatterHooks = require(ReplicatedStorage.Shared.MatterHooks)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local enabled = false
+
+local function disconnectPrevAndNextSegments(world: Types.World, beltSeg: Types.BeltSegment)
+	if beltSeg.prevSeg ~= nil and world:contains(beltSeg.prevSeg) then
+		local prevBeltSeg: Types.BeltSegment = world:get(beltSeg.prevSeg, Components.BeltSegment)
+		prevBeltSeg.nextSeg = nil
+	end
+	if beltSeg.nextSeg ~= nil and world:contains(beltSeg.nextSeg) then
+		local nextBeltSeg: Types.BeltSegment = world:get(beltSeg.nextSeg, Components.BeltSegment)
+		nextBeltSeg.prevSeg = nil
+	end
+end
 
 local function DeconstructSystem(world: Types.World)
 	local function despawnSorter(entity: Types.EntityId)
@@ -100,27 +112,25 @@ local function DeconstructSystem(world: Types.World)
 
 			local beltNode: Types.BeltNodeComponent = world:get(entity, Components.BeltNode)
 			if beltNode then -- delete the belt
-				local beltPath: Types.BeltPath = world:get(beltNode.beltPath, Components.BeltPath)
-				local beltItems: Types.BeltItemComponent = world:get(beltNode.beltPath, Components.BeltItems)
+				local beltSeg: Types.BeltSegment = world:get(beltNode.beltPath, Components.BeltSegment)
 
-				for _, item in ipairs(beltItems.items) do
-					item.mesh:Destroy()
-				end
-				for _, nodeId in ipairs(beltPath.nodes) do
+				for _, nodeId in ipairs(beltSeg.nodes) do
 					despawnConnectedSorters(nodeId)
-					disconnectBeltsConnected(nodeId)
+					-- disconnectBeltsConnected(nodeId)
 					world:despawn(nodeId)
 				end
 
-				local minerConnected = beltPath.minerConnected
+				local minerConnected = beltSeg.minerConnected
 				if minerConnected then
 					local miner: Types.Miner = world:get(minerConnected, Components.Miner)
 					miner.outputBelt = nil
 				end
 
-				if beltPath.beltNodeOutput ~= nil then
-					removeBeltConnection(beltPath.beltNodeOutput, beltNode.beltPath)
-				end
+				-- if beltPath.beltNodeOutput ~= nil then
+				-- 	removeBeltConnection(beltPath.beltNodeOutput, beltNode.beltPath)
+				-- end
+
+				disconnectPrevAndNextSegments(world, beltSeg)
 
 				world:despawn(beltNode.beltPath)
 				return Enum.ContextActionResult.Sink
@@ -129,7 +139,7 @@ local function DeconstructSystem(world: Types.World)
 			local miner = world:get(entity, Components.Miner)
 			if miner then
 				if miner.outputBelt then
-					local belt: Types.BeltPath = world:get(miner.outputBelt, Components.BeltPath)
+					local belt: Types.BeltSegment = world:get(miner.outputBelt, Components.BeltSegment)
 					belt.minerConnected = nil
 				end
 

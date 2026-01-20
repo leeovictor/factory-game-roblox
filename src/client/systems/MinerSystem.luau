@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local BeltHelpers = require(ReplicatedStorage.Shared.BeltHelpers)
 local BeltSettings = require(ReplicatedStorage.Shared.BeltSettings)
 local CollisionGroups = require(ReplicatedStorage.Shared.CollisionGroups)
 local OreDepletedRemoveSystem = require(script.Parent.OreDepletedRemoveSystem)
@@ -20,27 +21,14 @@ local function MinerSystem(world)
 		)
 	end
 
-	for id, miner: Types.Miner, storage: Types.Storage in world:query(Components.Miner, Components.Storage) do
-		if miner.outputBelt ~= nil and storage.currentAmount > 0 then
-			local beltItems: Types.BeltItemComponent = world:get(miner.outputBelt, Components.BeltItems)
-			local beltPath: Types.BeltPath = world:get(miner.outputBelt, Components.BeltPath)
-
-			-- try to pass item to belt
-			local beltLength = #beltPath.nodes * BeltSettings.BeltSubdiv
-			if
-				#beltItems.items == 0
-				or beltLength - beltItems.items[#beltItems.items].pos >= BeltSettings.ItemOcupancy
-			then
-				table.insert(
-					beltItems.items,
-					{
-						pos = beltLength,
-						item = miner.oreType,
-						mesh = Helpers.createItemMesh(miner.oreType),
-					} :: Types.BeltItem
-				)
-				storage.currentAmount -= 1
-			end
+	for _id, miner: Types.Miner, storage: Types.Storage in world:query(Components.Miner, Components.Storage) do
+		-- tenta empurrar item para a esteira de saída
+		if
+			miner.outputBelt ~= nil
+			and storage.currentAmount > 0
+			and BeltHelpers.tryInsertItemAtStartOfBelt(world, miner.outputBelt, miner.oreType)
+		then
+			storage.currentAmount -= 1
 		end
 
 		if miner.state == "ProductOverflow" then
