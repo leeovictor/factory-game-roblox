@@ -5,7 +5,22 @@ local Components = require(ReplicatedStorage.Shared.Components)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local function findNodeByItemDistance(itemDistance: number, nodesNum: number)
-	return nodesNum - math.floor(itemDistance / BeltSettings.BeltSubdiv)
+	return nodesNum - math.floor(itemDistance * BeltSettings.BeltSubdivInv)
+end
+
+local function calculateItemPositionInNode(node: Types.BeltNodeComponent, progress: number): Vector3
+	local doubleProgress = progress * 2
+
+	if node.direction == "top" then
+		return node.cframe:PointToWorldSpace(Vector3.new(0, 0, 1 - doubleProgress))
+	elseif progress < 0.5 then
+		-- Primeira metade da curva (comum para left e right)
+		return node.cframe:PointToWorldSpace(Vector3.new(0, 0, 1 - doubleProgress))
+	elseif node.direction == "left" then
+		return node.cframe:PointToWorldSpace(Vector3.new(-(progress - 0.5) * 2, 0, 0))
+	else -- right
+		return node.cframe:PointToWorldSpace(Vector3.new((progress - 0.5) * 2, 0, 0))
+	end
 end
 
 local function BeltItemsMovementSystem(world: Types.World)
@@ -19,42 +34,22 @@ local function BeltItemsMovementSystem(world: Types.World)
 			continue
 		end
 
-		local pos = 0
+		local beltLength = #belt.nodes * BeltSettings.BeltSubdiv
+		local dist = 0
 		for _i, item in ipairs(beltItems.items) do
-			pos += item.distFromNext
-			local length = #belt.nodes * BeltSettings.BeltSubdiv
-			local nodeIndex = findNodeByItemDistance(pos - 1, #belt.nodes)
+			dist += item.distFromNext
+			local nodeIndex = findNodeByItemDistance(dist - 1, #belt.nodes)
 
 			if nodeIndex == 0 or nodeIndex > #belt.nodes then
 				-- FIXME: handle items that go out of bounds
-				-- warn("Belt item out of bounds:", _id, item)
 				continue
 			end
-			-- assert(nodeIndex ~= 0, "NodeIndex is zero")
-			-- assert(nodeIndex <= #belt.nodes, "NodeIndex exceeds belt nodes count")
 
-			local nodeProgress = (length - pos) - (BeltSettings.BeltSubdiv * (nodeIndex - 1))
+			local nodeProgress = (beltLength - dist) - (BeltSettings.BeltSubdiv * (nodeIndex - 1))
 			local node: Types.BeltNodeComponent = world:get(belt.nodes[nodeIndex], Components.BeltNode)
 
-			local nodeStartPoint = node.pos - node.cframe.LookVector
-			local nodeEndPoint = node.pos + node.cframe.LookVector
-			local rightPoint = node.pos + node.cframe.RightVector
-			local leftPoint = node.pos - node.cframe.RightVector
-
-			local progress = nodeProgress / BeltSettings.BeltSubdiv -- 0 to 1
-
-			local itemPos = nil
-			if node.direction == "top" then
-				itemPos = nodeStartPoint:Lerp(nodeEndPoint, progress)
-			elseif node.direction == "left" then
-				itemPos = progress < 0.5 and nodeStartPoint:Lerp(node.pos, progress * 2)
-					or node.pos:Lerp(leftPoint, (progress - 0.5) * 2)
-			elseif node.direction == "right" then
-				itemPos = progress < 0.5 and nodeStartPoint:Lerp(node.pos, progress * 2)
-					or node.pos:Lerp(rightPoint, (progress - 0.5) * 2)
-			else
-				error("Invalid belt node direction: " .. tostring(node.direction))
-			end
+			local progress = nodeProgress * BeltSettings.BeltSubdivInv
+			local itemPos = calculateItemPositionInNode(node, progress)
 
 			if not meshes[item] then
 				error("Mesh not found for belt item: " .. tostring(item))

@@ -1,5 +1,6 @@
 return {
 	BeltSubdiv = 40,
+	BeltSubdivInv = 1 / 40,
 	ItemOcupancy = 40,
 	BeltSpeeds = {
 		SuperSlow = 1, -- ONLY FOR TESTING
