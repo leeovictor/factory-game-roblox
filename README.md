@@ -1,6 +1,7 @@
 # Factory Game Roblox
 Jogo de construção e automação no estilo Factorio no plataforma roblox. Atualmente a simulação de produção é feita apenas no client e suportar apenas mouse e teclado. Suporte à multiplayer ainda será avalidado.
 
+![alt text](images/image5.png)
 ![alt text](images/image.png)
 ![alt text](images/image2.png)
 ![alt text](images/image3.png)
